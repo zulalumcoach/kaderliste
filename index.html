@@ -1,0 +1,973 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spieler-Trainingsliste</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{--navy:#142b38;--muted:#71828a;--green:#21a67a;--line:#e5eceb;--bg:#f5f8f7;--white:#fff;--red:#c44d4d;--yellow:#b77712;--glass-bg:rgba(255,255,255,0.08);--glass-border:rgba(255,255,255,0.15);--glass-shadow:0 8px 32px rgba(0,0,0,0.3)}
+*{box-sizing:border-box}
+body,button,input,select{font-family:"DM Sans",sans-serif}
+body{margin:0;background:var(--bg);color:var(--navy);font-size:14px}
+button,input,select{font-size:14px}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid #40bf98;outline-offset:3px}
+.shell{max-width:1500px;margin:auto;padding:32px clamp(16px,3vw,48px) 60px}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:27px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:17px;letter-spacing:-.5px}
+.brand-icon{width:38px;height:38px;border-radius:12px;background:var(--navy);color:white;display:grid;place-items:center}
+.brand-icon svg{width:20px;height:20px}
+.top-note{color:var(--muted);font-weight:600;font-size:12px;display:flex;align-items:center;gap:12px}
+.lock-btn{height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--navy);display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:12px}
+.lock-btn svg{width:14px;height:14px}
+.lock-btn.unlocked{background:#e9f8f1;border-color:#b5e7cd;color:#16845c}
+.lock-btn.locked{background:#fdecec;border-color:#f5c6c6;color:var(--red)}
+.hero{background:var(--navy);color:white;border-radius:24px;padding:32px 36px;display:flex;justify-content:space-between;align-items:center;gap:25px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:300px;height:300px;border:1px solid #ffffff21;border-radius:50%;right:8%;top:-170px;box-shadow:0 0 0 55px #ffffff08,0 0 0 110px #ffffff06;pointer-events:none}
+.eyebrow{text-transform:uppercase;color:#72d6af;letter-spacing:2px;font-weight:800;font-size:11px;margin:0 0 10px}
+h1{font-size:clamp(26px,3.2vw,42px);letter-spacing:-1.5px;line-height:1.1;margin:0 0 10px}
+.hero p:last-child{color:#b9cbd0;margin:0;line-height:1.5}
+.hero-mark{color:#82d9b5;opacity:.85;z-index:1}
+.hero-mark svg{width:75px;height:75px;stroke-width:1.2}
+
+.view-tabs{display:flex;gap:8px;margin:24px 0 18px}
+.tab{height:42px;padding:0 20px;border-radius:11px;border:1px solid var(--line);background:#fff;color:var(--navy);font-weight:800;display:inline-flex;align-items:center;gap:8px}
+.tab svg{width:17px;height:17px}
+.tab.active{background:var(--navy);border-color:var(--navy);color:#fff}
+body[data-view="kader"] .training-view{display:none!important}
+.kader-view{display:none}
+body[data-view="kader"] .kader-view{display:block}
+
+.kader-container{background:linear-gradient(135deg,#0a0f0e 0%,#142b38 50%,#0a0f0e 100%);border-radius:24px;padding:40px;color:#fff;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
+.kader-container::before{content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 20%,rgba(33,166,122,0.15) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(33,166,122,0.1) 0%,transparent 50%);pointer-events:none}
+.kader-container>*{position:relative;z-index:1}
+
+.matchday-overview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.matchday-overview-header h2{font-family:"Orbitron",sans-serif;font-size:28px;font-weight:800;letter-spacing:2px;background:linear-gradient(90deg,#fff,#21a67a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0}
+.matchday-overview-header .sub{color:rgba(255,255,255,0.6);font-size:13px;margin-top:4px}
+.matchday-stats{display:flex;gap:16px}
+.matchday-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 16px;text-align:center}
+.matchday-stat .stat-num{font-family:"Orbitron",sans-serif;font-size:20px;font-weight:900;color:#21a67a}
+.matchday-stat .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.5);margin-top:2px}
+
+.matchday-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+
+/* ===== NEUE KACHEL MIT GEGNER + H/A ===== */
+.matchday-card{
+  background:rgba(255,255,255,0.05);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  padding:16px 14px;
+  cursor:pointer;
+  transition:all 0.3s ease;
+  position:relative;
+  overflow:hidden;
+  text-align:center;
+}
+.matchday-card::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#21a67a,#6dd5b0);
+  opacity:0;transition:opacity 0.3s ease;
+}
+.matchday-card:hover{
+  background:rgba(255,255,255,0.1);
+  border-color:rgba(33,166,122,0.4);
+  transform:translateY(-4px);
+  box-shadow:0 12px 30px rgba(33,166,122,0.25);
+}
+.matchday-card:hover::before{opacity:1}
+.matchday-card.has-data{
+  background:rgba(33,166,122,0.08);
+  border-color:rgba(33,166,122,0.3);
+}
+.matchday-card.has-data::before{opacity:1}
+
+.matchday-card .md-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.matchday-card .md-number{
+  font-family:"Orbitron",sans-serif;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:2px;
+  color:rgba(255,255,255,0.5);
+  text-transform:uppercase;
+}
+
+/* H/A Badge */
+.matchday-card .md-location{
+  font-family:"Orbitron",sans-serif;
+  font-size:11px;
+  font-weight:900;
+  padding:3px 8px;
+  border-radius:6px;
+  letter-spacing:1px;
+}
+.matchday-card .md-location.home{
+  background:rgba(33,166,122,0.25);
+  color:#6dd5b0;
+  border:1px solid rgba(33,166,122,0.4);
+}
+.matchday-card .md-location.away{
+  background:rgba(183,119,18,0.25);
+  color:#f4dcad;
+  border:1px solid rgba(183,119,18,0.4);
+}
+.matchday-card .md-location.none{
+  background:rgba(255,255,255,0.08);
+  color:rgba(255,255,255,0.4);
+  border:1px solid rgba(255,255,255,0.15);
+}
+
+.matchday-card .md-title{
+  font-family:"Orbitron",sans-serif;
+  font-size:28px;
+  font-weight:900;
+  color:#fff;
+  margin-bottom:4px;
+  line-height:1;
+}
+
+/* Gegner-Zeile */
+.matchday-card .md-opponent{
+  font-size:11px;
+  font-weight:700;
+  color:rgba(255,255,255,0.7);
+  margin-bottom:8px;
+  min-height:14px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.matchday-card .md-opponent .vs-label{
+  color:rgba(255,255,255,0.4);
+  font-weight:600;
+  margin:0 3px;
+}
+.matchday-card .md-opponent .opp-name{
+  color:#fff;
+  font-weight:800;
+}
+
+.matchday-card .md-info{
+  font-size:10px;
+  color:rgba(255,255,255,0.5);
+  line-height:1.3;
+  min-height:26px;
+  margin-bottom:8px;
+}
+
+.matchday-card .md-players{
+  padding-top:8px;
+  border-top:1px solid rgba(255,255,255,0.1);
+  font-size:10px;
+  color:rgba(255,255,255,0.5);
+  text-transform:uppercase;
+  letter-spacing:1px;
+}
+.matchday-card .md-players strong{color:#21a67a;font-size:12px}
+
+.matchday-detail{display:none}
+.matchday-detail.active{display:block}
+.matchday-overview.hidden{display:none}
+
+.detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.detail-header .back-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s ease}
+.detail-header .back-btn:hover{background:rgba(255,255,255,0.15);border-color:rgba(33,166,122,0.4)}
+.detail-header .back-btn svg{width:16px;height:16px}
+.detail-header h2{font-family:"Orbitron",sans-serif;font-size:24px;font-weight:800;letter-spacing:2px;color:#fff;margin:0}
+.detail-header .md-badge{background:linear-gradient(135deg,#21a67a 0%,#1a8a63 100%);color:#fff;padding:8px 16px;border-radius:10px;font-family:"Orbitron",sans-serif;font-size:13px;font-weight:800;letter-spacing:1px}
+
+.glass-card{background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;padding:24px;box-shadow:var(--glass-shadow);transition:all 0.3s ease}
+.kader-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px}
+.kader-form .fields{grid-template-columns:1fr 1fr;gap:16px}
+.kader-form label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.6);font-weight:700;margin-bottom:8px}
+.kader-form input,.kader-form select{width:100%;height:44px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:0 14px;color:#fff;font-size:14px;font-weight:600;transition:all 0.3s ease;font-family:"DM Sans",sans-serif}
+.kader-form input:focus,.kader-form select:focus{outline:none;background:rgba(255,255,255,0.1);border-color:#21a67a;box-shadow:0 0 0 3px rgba(33,166,122,0.2)}
+.kader-form input::placeholder{color:rgba(255,255,255,0.3)}
+.kader-form select option{background:#142b38;color:#fff}
+.logo-box{display:flex;gap:16px;margin-top:20px}
+.logo-slot{flex:1;background:rgba(255,255,255,0.05);border:2px dashed rgba(255,255,255,0.2);border-radius:12px;padding:16px;text-align:center;transition:all 0.3s ease}
+.logo-slot:hover{background:rgba(255,255,255,0.08);border-color:rgba(33,166,122,0.5)}
+.logo-slot label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.6);margin-bottom:8px;font-weight:700}
+.logo-slot img{width:64px;height:64px;object-fit:contain;margin:8px auto;display:block;border-radius:8px}
+.logo-slot input[type=file]{width:100%;font-size:11px;color:rgba(255,255,255,0.6)}
+.logo-slot input[type=file]::file-selector-button{background:rgba(33,166,122,0.2);border:1px solid rgba(33,166,122,0.4);color:#21a67a;padding:6px 12px;border-radius:6px;cursor:pointer;font-weight:700;margin-right:8px}
+.glass-btn{height:44px;padding:0 24px;border-radius:10px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff;font-weight:800;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:all 0.3s ease;box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+.glass-btn:hover{background:rgba(255,255,255,0.15);border-color:rgba(255,255,255,0.3);transform:translateY(-2px);box-shadow:0 8px 24px rgba(33,166,122,0.3)}
+.glass-btn.primary{background:linear-gradient(135deg,#21a67a 0%,#1a8a63 100%);border-color:#21a67a;box-shadow:0 4px 16px rgba(33,166,122,0.4)}
+.glass-btn.primary:hover{background:linear-gradient(135deg,#25b885 0%,#1f9a70 100%);box-shadow:0 8px 24px rgba(33,166,122,0.5)}
+.glass-btn svg{width:16px;height:16px}
+.nom-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.nom-head label{font-family:"Orbitron",sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:#fff;margin:0}
+.nom-head .sub{color:rgba(255,255,255,0.5);font-size:11px;text-transform:uppercase;letter-spacing:1px}
+.nom-row{display:flex;align-items:center;gap:12px;padding:12px 16px;margin-bottom:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;transition:all 0.3s ease}
+.nom-row:hover{background:rgba(255,255,255,0.08);border-color:rgba(33,166,122,0.3)}
+.nom-row input[type=checkbox]{width:20px;height:20px;accent-color:#21a67a;cursor:pointer}
+.num-input{width:60px;height:36px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:#fff;font-weight:800;font-size:16px;text-align:center}
+.num-input:focus{outline:none;border-color:#21a67a;background:rgba(255,255,255,0.12)}
+.nom-name{font-weight:700;color:#fff;flex:1}
+.kader-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
+
+.poster-stage{padding:0;display:flex;justify-content:center;margin-top:32px}
+.poster{position:relative;width:1080px;max-width:100%;aspect-ratio:1/1;background:linear-gradient(135deg,#0a0f0e 0%,#142b38 50%,#0a0f0e 100%);border-radius:24px;overflow:hidden;font-family:"DM Sans",sans-serif;color:#fff;box-shadow:0 30px 80px rgba(0,0,0,0.6)}
+.poster *{margin:0;padding:0;box-sizing:border-box}
+.poster-bg-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:75%;height:75%;max-width:820px;max-height:820px;opacity:0.07;pointer-events:none;z-index:1;display:grid;place-items:center}
+.poster-bg-logo img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 40px rgba(33,166,122,0.3))}
+.poster .glow-1{position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(33,166,122,0.3) 0%,transparent 70%);top:-100px;left:-100px;pointer-events:none;filter:blur(40px);z-index:2}
+.poster .glow-2{position:absolute;width:500px;height:500px;background:radial-gradient(circle,rgba(33,166,122,0.2) 0%,transparent 70%);bottom:-150px;right:-150px;pointer-events:none;filter:blur(50px);z-index:2}
+.poster .glow-3{position:absolute;width:300px;height:300px;background:radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;filter:blur(60px);z-index:2}
+.poster .grid-pattern{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:2}
+.poster .diag-lines{position:absolute;inset:0;background:repeating-linear-gradient(45deg,transparent,transparent 100px,rgba(33,166,122,0.05) 100px,rgba(33,166,122,0.05) 101px);pointer-events:none;z-index:2}
+.poster .content{position:relative;z-index:5;height:100%;display:flex;flex-direction:column;padding:44px 52px}
+.poster .p-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.poster .p-league{font-family:"Orbitron",sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:rgba(255,255,255,0.6);text-transform:uppercase}
+.poster .p-trophy{font-size:42px;filter:drop-shadow(0 4px 12px rgba(255,215,0,0.5))}
+.poster .p-title-wrap{margin-bottom:18px}
+.poster .p-title{font-family:"Orbitron",sans-serif;font-size:100px;font-weight:900;letter-spacing:8px;color:#ffffff;line-height:1;position:relative;text-shadow:0 0 20px rgba(33,166,122,0.6),0 0 40px rgba(33,166,122,0.4),0 0 60px rgba(33,166,122,0.2)}
+.poster .p-title::after{content:"";position:absolute;bottom:-8px;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#21a67a,transparent)}
+.poster .p-matchday{font-family:"Orbitron",sans-serif;font-size:18px;font-weight:700;letter-spacing:3px;color:#21a67a;margin-top:10px;text-transform:uppercase}
+.poster .p-match-info{background:rgba(255,255,255,0.08);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.15);border-radius:16px;padding:20px 28px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+.poster .p-match-info .info-block{display:flex;flex-direction:column;gap:4px}
+.poster .p-match-info .info-label{font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.5);font-weight:700}
+.poster .p-match-info .info-value{font-family:"Orbitron",sans-serif;font-size:18px;font-weight:800;color:#fff;letter-spacing:1px}
+.poster .p-match-info .info-value.time{color:#21a67a;font-size:22px}
+.poster .p-teams{display:flex;align-items:center;justify-content:center;gap:30px;margin-bottom:20px}
+.poster .p-team{display:flex;flex-direction:column;align-items:center;gap:10px;flex:1}
+.poster .p-logo{width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,0.08);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:2px solid rgba(255,255,255,0.2);display:grid;place-items:center;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+.poster .p-logo img{width:90px;height:90px;object-fit:contain}
+.poster .p-logo .logo-fallback{font-family:"Orbitron",sans-serif;font-size:40px;font-weight:900;color:#21a67a}
+.poster .p-team-name{font-family:"Orbitron",sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;text-align:center}
+.poster .p-vs{width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#21a67a 0%,#1a8a63 100%);color:#fff;display:grid;place-items:center;font-family:"Orbitron",sans-serif;font-weight:900;font-size:24px;box-shadow:0 8px 32px rgba(33,166,122,0.5);border:3px solid rgba(255,255,255,0.2)}
+.poster .p-players{display:grid;grid-template-columns:1fr 1fr;gap:0 32px;flex:1;min-height:0}
+.poster .p-col{display:flex;flex-direction:column;gap:10px;min-height:0;justify-content:flex-start}
+.poster .p-row{display:flex;align-items:center;gap:14px;padding:14px 20px;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;transition:all 0.3s ease;min-height:0}
+.poster .p-row:hover{background:rgba(255,255,255,0.08);border-color:rgba(33,166,122,0.3);transform:translateX(4px)}
+.poster .p-num{font-family:"Orbitron",sans-serif;font-weight:900;font-size:28px;color:#21a67a;min-width:42px;text-align:center;text-shadow:0 0 15px rgba(33,166,122,0.5)}
+.poster .p-name{font-weight:800;font-size:20px;text-transform:uppercase;letter-spacing:0.8px;color:#fff;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.poster[data-size="large"] .p-row{padding:18px 22px;gap:16px}
+.poster[data-size="large"] .p-num{font-size:34px;min-width:48px}
+.poster[data-size="large"] .p-name{font-size:26px}
+.poster[data-size="large"] .p-col{gap:12px}
+.poster[data-size="medium"] .p-row{padding:15px 20px;gap:14px}
+.poster[data-size="medium"] .p-num{font-size:30px;min-width:44px}
+.poster[data-size="medium"] .p-name{font-size:22px}
+.poster[data-size="medium"] .p-col{gap:11px}
+.poster[data-size="small"] .p-row{padding:12px 18px;gap:12px}
+.poster[data-size="small"] .p-num{font-size:26px;min-width:40px}
+.poster[data-size="small"] .p-name{font-size:19px}
+.poster[data-size="small"] .p-col{gap:10px}
+.poster[data-size="xsmall"] .p-row{padding:10px 16px;gap:12px}
+.poster[data-size="xsmall"] .p-num{font-size:24px;min-width:38px}
+.poster[data-size="xsmall"] .p-name{font-size:17px}
+.poster[data-size="xsmall"] .p-col{gap:9px}
+.poster .p-empty{text-align:center;padding:60px;color:rgba(255,255,255,0.4);font-size:20px;font-weight:600}
+
+@media(max-width:1120px){.poster{width:100%}}
+@media(max-width:820px){.kader-grid{grid-template-columns:1fr}.matchday-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+@media(max-width:700px){.kader-container{padding:24px}.poster .content{padding:36px 28px}.poster .p-title{font-size:72px}.poster .p-logo{width:80px;height:80px}.poster .p-logo img{width:65px;height:65px}.poster .p-vs{width:50px;height:50px;font-size:18px}.poster .p-num{font-size:18px}.poster .p-name{font-size:13px}.matchday-grid{grid-template-columns:repeat(2,1fr)}}
+@media print{body>*:not(.poster){display:none!important}.poster{box-shadow:none;border-radius:0;width:100%}}
+
+.toolbar{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin:27px 0 18px}
+.toolbar-left,.toolbar-right{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.toolbar-left{flex-direction:column;align-items:flex-start}.period-fields{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#60757c;font-weight:800;margin-bottom:7px}
+select,input{height:42px;border:1px solid #dce6e4;border-radius:10px;background:#fff;color:var(--navy);padding:0 12px;outline:none}
+select:focus,input:focus{border-color:var(--green)}
+#month-select{min-width:145px}#year-select{min-width:105px}
+.btn{height:42px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--navy);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 15px;font-weight:800;white-space:nowrap}
+.btn svg{width:17px;height:17px}
+.btn.primary{background:var(--green);border-color:var(--green);color:white}
+.btn:hover:not(:disabled){filter:brightness(.96)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+.stat{background:white;border:1px solid var(--line);border-radius:16px;padding:17px 19px;display:flex;align-items:center;gap:14px}
+.stat-icon{width:41px;height:41px;display:grid;place-items:center;background:#e9f8f1;color:#14976d;border-radius:11px;flex:none}
+.stat-icon svg{width:19px;height:19px}
+.stat small{display:block;color:var(--muted);font-weight:700;margin-bottom:3px}.stat strong{font-size:22px;letter-spacing:-.5px}
+.panel{background:white;border:1px solid var(--line);border-radius:19px;overflow:hidden;box-shadow:0 8px 28px #183e3210}
+.panel-head{padding:22px 24px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h2{font-size:18px;letter-spacing:-.5px;margin:0 0 3px}.sub{margin:0;color:var(--muted);font-size:12px}
+.legend{display:flex;gap:14px;align-items:center;flex-wrap:wrap;font-size:12px;color:#61737a;font-weight:700}
+.legend span{display:flex;gap:6px;align-items:center}
+.badge{display:inline-grid;place-items:center;min-width:27px;height:25px;border-radius:7px;font-weight:800;font-size:11px}
+.badge.t{background:#dcf7e9;color:#16845c}
+.badge.e{background:#fff1d9;color:var(--yellow)}
+.badge.et{background:#e8eafd;color:#6267ba}
+.badge.none{background:#fdecec;color:var(--red)}
+.table-scroll{overflow-x:auto;max-width:100%}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:670px;text-align:left}
+th{background:#f8faf9;color:#6a7f84;text-transform:uppercase;letter-spacing:.8px;font-size:10px;font-weight:800;height:54px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+td{height:62px;border-bottom:1px solid #eef2f1;font-weight:600}
+th,td{padding:8px 12px}
+th:first-child,td:first-child{padding-left:24px}
+th:last-child,td:last-child{padding-right:24px}
+tbody tr:last-child td{border-bottom:0}
+.name-cell{min-width:130px;cursor:pointer;transition:all 0.2s ease}
+.name-cell:hover{background:#e9f8f1;color:var(--green)}
+.first-cell{min-width:130px;cursor:pointer;transition:all 0.2s ease}
+.first-cell:hover{background:#e9f8f1;color:var(--green)}
+.day-col{text-align:center;min-width:77px}
+.date-top{display:block;font-size:13px;color:var(--navy);letter-spacing:0}
+.date-bottom{display:block;font-size:10px;margin-top:3px}
+.day-head{position:relative}
+.remove-day{border:0;background:transparent;color:#a9b5b6;position:absolute;right:3px;top:3px;padding:2px;line-height:0}
+.remove-day svg{width:12px;height:12px}.remove-day:hover{color:var(--red)}
+.status-btn{width:42px;height:34px;border:1px dashed #d6e2df;background:#fbfcfc;border-radius:9px;color:#b4c0be;font-weight:800}
+.status-btn.t{background:#dcf7e9;border:1px solid #b5e7cd;color:#16845c}
+.status-btn.e{background:#fff1d9;border:1px solid #f4dcad;color:var(--yellow)}
+.status-btn.et{background:#e8eafd;border:1px solid #d1d4f5;color:#6267ba}
+.status-btn.none{background:#fdecec;border:1px solid #f5c6c6;color:var(--red)}
+.status-btn:hover{border-color:var(--green)}
+.total-col{min-width:95px;text-align:center}.rate-col{min-width:150px}
+.total-num{font-size:17px;font-weight:800}.rate-wrap{display:flex;align-items:center;gap:10px}.rate-track{width:65px;height:6px;background:#e9efec;border-radius:8px;overflow:hidden;flex:none}.rate-fill{height:100%;border-radius:8px}.rate-value{font-weight:800}
+.actions-col{width:70px;text-align:right}.icon-btn{border:0;background:transparent;color:#9aacad;padding:7px;border-radius:7px;line-height:0}.icon-btn:hover{background:#f2f5f4;color:var(--navy)}.icon-btn svg{width:17px;height:17px}
+.empty{text-align:center;padding:55px 20px;color:var(--muted)}.empty svg{width:30px;height:30px;color:var(--green);margin-bottom:10px}.empty strong{display:block;color:var(--navy);font-size:16px;margin-bottom:5px}
+.panel-foot{border-top:1px solid var(--line);padding:15px 24px;color:var(--muted);font-size:12px}
+.overview{margin:0 0 18px}.overview .panel-head{align-items:flex-start}.overview table{min-width:900px}.overview td{height:55px}
+.message{min-height:24px;margin:8px 0;color:var(--red);font-weight:700;transition:opacity 0.3s}.message.ok{color:#16845c}
+
+.player-modal-backdrop{position:fixed;inset:0;background:rgba(16,45,56,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;z-index:100;animation:fadeIn 0.2s ease}
+.player-modal-backdrop.open{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.player-modal{background:linear-gradient(135deg,#0a0f0e 0%,#142b38 50%,#0a0f0e 100%);border-radius:24px;padding:0;width:min(100%,680px);max-height:90vh;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.1);animation:slideUp 0.3s ease;position:relative}
+.player-modal::before{content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 20%,rgba(33,166,122,0.2) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(33,166,122,0.1) 0%,transparent 50%);pointer-events:none}
+.player-modal>*{position:relative;z-index:1}
+.player-modal-header{padding:32px 36px 24px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.player-modal-header .player-info{flex:1}
+.player-modal-header .player-name{font-family:"Orbitron",sans-serif;font-size:32px;font-weight:900;letter-spacing:2px;background:linear-gradient(90deg,#fff,#21a67a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0 0 6px;text-transform:uppercase}
+.player-modal-header .player-vorname{font-size:18px;color:rgba(255,255,255,0.7);font-weight:600;letter-spacing:1px}
+.player-modal-header .player-id-badge{background:rgba(33,166,122,0.2);border:1px solid rgba(33,166,122,0.4);color:#21a67a;padding:8px 14px;border-radius:10px;font-family:"Orbitron",sans-serif;font-size:12px;font-weight:800;letter-spacing:1px}
+.player-modal-close{position:absolute;top:20px;right:20px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;display:grid;place-items:center;cursor:pointer;transition:all 0.2s ease;z-index:2}
+.player-modal-close:hover{background:rgba(196,77,77,0.3);border-color:rgba(196,77,77,0.5);transform:rotate(90deg)}
+.player-modal-close svg{width:20px;height:20px}
+.player-modal-body{padding:28px 36px;overflow-y:auto;max-height:calc(90vh - 130px)}
+.player-stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+.player-stat-card{background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:18px;text-align:center;transition:all 0.3s ease}
+.player-stat-card:hover{background:rgba(255,255,255,0.1);border-color:rgba(33,166,122,0.4);transform:translateY(-2px)}
+.player-stat-card .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.5);font-weight:700;margin-bottom:8px}
+.player-stat-card .stat-value{font-family:"Orbitron",sans-serif;font-size:28px;font-weight:900;color:#fff;line-height:1}
+.player-stat-card .stat-sub{font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:600}
+.player-stat-card.highlight{background:linear-gradient(135deg,rgba(33,166,122,0.2) 0%,rgba(33,166,122,0.05) 100%);border-color:rgba(33,166,122,0.4)}
+.player-stat-card.highlight .stat-value{background:linear-gradient(90deg,#fff,#21a67a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.player-rate-section{background:rgba(255,255,255,0.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:20px;margin-bottom:28px}
+.player-rate-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.player-rate-header .rate-title{font-size:12px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.6);font-weight:700}
+.player-rate-header .rate-percent{font-family:"Orbitron",sans-serif;font-size:22px;font-weight:900}
+.player-rate-bar{width:100%;height:10px;background:rgba(255,255,255,0.08);border-radius:8px;overflow:hidden}
+.player-rate-bar-fill{height:100%;border-radius:8px;transition:width 0.6s ease}
+.player-monthly-section{margin-top:8px}
+.player-monthly-title{font-family:"Orbitron",sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.7);text-transform:uppercase;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.player-monthly-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.player-month-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;transition:all 0.2s ease}
+.player-month-card:hover{background:rgba(255,255,255,0.08);border-color:rgba(33,166,122,0.3)}
+.player-month-card .month-name{font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.player-month-card .month-stats{font-family:"Orbitron",sans-serif;font-size:16px;font-weight:800;color:#fff;margin-bottom:4px}
+.player-month-card .month-rate{font-size:10px;font-weight:700;color:rgba(255,255,255,0.5)}
+.player-month-card.has-data{background:rgba(33,166,122,0.08);border-color:rgba(33,166,122,0.2)}
+.player-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1)}
+.player-legend-item{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,0.6);font-weight:600}
+.player-legend-item .legend-badge{width:24px;height:22px;border-radius:6px;display:grid;place-items:center;font-weight:800;font-size:10px}
+.player-legend-item .legend-badge.t{background:#dcf7e9;color:#16845c}
+.player-legend-item .legend-badge.e{background:#fff1d9;color:#b77712}
+.player-legend-item .legend-badge.et{background:#e8eafd;color:#6267ba}
+.player-legend-item .legend-badge.none{background:#fdecec;color:#c44d4d}
+@media(max-width:600px){.player-modal-header{padding:24px 20px 18px}.player-modal-header .player-name{font-size:24px}.player-modal-body{padding:20px}.player-stats-grid{grid-template-columns:1fr 1fr}.player-monthly-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:400px){.player-monthly-grid{grid-template-columns:repeat(2,1fr)}}
+
+.modal-backdrop{position:fixed;inset:0;background:#102d38a8;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}
+.modal-backdrop.open{display:flex}.modal{background:#fff;border-radius:20px;padding:26px;width:min(100%,430px);box-shadow:0 25px 80px #102d3850}
+.modal h2{font-size:21px;margin-bottom:7px}.modal p{color:var(--muted);line-height:1.5;margin:0 0 20px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.fields input{width:100%}
+.modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:24px}.danger{color:var(--red)!important;margin-right:auto}
+.status-options{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.status-option{height:45px;border:1px solid var(--line);background:#fff;border-radius:10px;font-weight:800}.status-option:hover{border-color:var(--green)}
+.pin-input{width:100%;height:52px;font-size:24px;text-align:center;letter-spacing:10px;border:2px solid var(--line);border-radius:12px;font-weight:800}
+.pin-input:focus{border-color:var(--green)}
+.pin-input.error{border-color:var(--red);animation:shake 0.4s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.pin-hint{text-align:center;color:var(--muted);font-size:12px;margin-top:10px}
+.pin-icon-wrap{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:#e9f8f1;color:#16845c;margin:0 auto 15px}
+.pin-icon-wrap svg{width:26px;height:26px}
+@media(max-width:700px){.shell{padding:18px 12px 40px}.topline{margin-bottom:18px}.hero{padding:26px 22px}.hero-mark{display:none}.stats{grid-template-columns:1fr 1fr}.stat:last-child{grid-column:1/-1}.stat{padding:12px}.panel-head{padding:19px 17px}.panel-foot{padding:14px 17px}.top-note span:not(.lock-btn){display:none}}
+@media(max-width:430px){.stats{grid-template-columns:1fr 1fr}.toolbar-right{width:100%}#date-input{flex:1;min-width:0}.fields{grid-template-columns:1fr}}
+</style>
+</head>
+<body data-view="training">
+<main class="shell">
+ <header class="topline">
+  <div class="brand">
+   <span class="brand-icon"><i data-lucide="activity"></i></span><span>TEAM<span style="color:#21a67a">TRACK</span></span>
+  </div>
+  <div class="top-note">
+   <span>TRAINING · ÜBERSICHT · FORTSCHRITT</span>
+   <button id="lock-toggle" class="lock-btn locked" type="button"><i data-lucide="lock"></i><span>Gesperrt</span></button>
+  </div>
+ </header>
+ <section class="hero">
+  <div>
+   <p class="eyebrow">Dein Team im Blick</p>
+   <h1>Spieler-Trainingsliste</h1>
+   <p>Trainingstage planen, Anwesenheit erfassen und Teilnahme auf einen Blick sehen.</p>
+  </div>
+  <div class="hero-mark"><i data-lucide="circle-dot"></i></div>
+ </section>
+
+ <nav class="view-tabs">
+  <button id="tab-training" class="tab active" type="button"><i data-lucide="clipboard-list"></i> Training</button>
+  <button id="tab-kader" class="tab" type="button"><i data-lucide="shield"></i> Matchday-Kader</button>
+ </nav>
+
+ <section class="toolbar training-view">
+  <div class="toolbar-left">
+   <div class="period-fields">
+    <div><label for="month-select">Monat</label><select id="month-select"></select></div>
+    <div><label for="year-select">Jahr</label><select id="year-select"></select></div>
+   </div>
+  </div>
+  <div id="training-actions" class="toolbar-right">
+   <div><label for="date-input">Trainingstag wählen</label><input id="date-input" type="date"></div>
+   <button id="add-day" class="btn" type="button"><i data-lucide="calendar-plus"></i> Tag hinzufügen</button>
+   <button id="add-player" class="btn primary" type="button"><i data-lucide="user-round-plus"></i> Spieler hinzufügen</button>
+  </div>
+ </section>
+ <section class="stats training-view">
+  <div class="stat"><div class="stat-icon"><i data-lucide="users"></i></div><div><small>Spieler im Kader</small><strong id="stat-players">0</strong></div></div>
+  <div class="stat"><div class="stat-icon"><i data-lucide="calendar-days"></i></div><div><small>Trainingstage</small><strong id="stat-days">0</strong></div></div>
+  <div class="stat"><div class="stat-icon"><i data-lucide="trending-up"></i></div><div><small>Ø Teilnahmequote</small><strong id="stat-rate">0 %</strong></div></div>
+ </section>
+
+ <section class="panel overview training-view" id="overview-panel" hidden>
+  <div class="panel-head"><div><h2>Jahres-Gesamtübersicht</h2><p id="overview-sub" class="sub"></p></div></div>
+  <div class="table-scroll"><table><thead id="overview-head"></thead><tbody id="overview-body"></tbody></table></div>
+  <div class="panel-foot">💡 Klicke auf einen Spieler für die gesamte Jahresübersicht.</div>
+ </section>
+
+ <section id="attendance-panel" class="panel training-view">
+  <div class="panel-head"><div><h2>Anwesenheitsübersicht</h2><p id="period-label" class="sub"></p></div>
+   <div class="legend"><span><b class="badge t">T</b> Teilgenommen</span><span><b class="badge e">E</b> Entschuldigt</span><span><b class="badge et">ET</b> Einzeltraining</span><span><b class="badge none">−</b> Nicht teilgenommen</span></div>
+  </div>
+  <div class="table-scroll"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
+  <div class="panel-foot">💡 Klicke auf einen Spieler für die Details des aktuellen Monats.</div>
+ </section>
+
+ <section id="kader-panel" class="kader-container kader-view">
+  <div id="matchday-overview" class="matchday-overview">
+   <div class="matchday-overview-header">
+    <div>
+     <h2>SAISON SPIELTAGE</h2>
+     <p class="sub">Wähle einen Spieltag für die Kaderplanung</p>
+    </div>
+    <div class="matchday-stats">
+     <div class="matchday-stat"><div class="stat-num" id="md-filled-count">0</div><div class="stat-label">Ausgefüllt</div></div>
+     <div class="matchday-stat"><div class="stat-num" id="md-total-players">0</div><div class="stat-label">Spieler gesamt</div></div>
+    </div>
+   </div>
+   <div class="matchday-grid" id="matchday-grid"></div>
+  </div>
+
+  <div id="matchday-detail" class="matchday-detail">
+   <div class="detail-header">
+    <button class="back-btn" id="back-to-overview" type="button"><i data-lucide="arrow-left"></i> Zurück</button>
+    <h2 id="detail-title">MATCHDAY 1</h2>
+    <div class="md-badge" id="detail-badge">MD 1</div>
+   </div>
+   <div class="kader-grid">
+    <div class="glass-card kader-form">
+     <div class="fields">
+      <div><label for="m-location">Spielart</label>
+       <select id="m-location">
+        <option value="home">🏠 Heimspiel (H)</option>
+        <option value="away">✈️ Auswärtsspiel (A)</option>
+       </select>
+      </div>
+      <div><label for="m-date">Datum</label><input id="m-date" type="text" maxlength="20" placeholder="z. B. FR 06. NOV"></div>
+      <div><label for="m-time">Uhrzeit</label><input id="m-time" type="text" maxlength="10" placeholder="z. B. 18:30 UHR"></div>
+      <div><label for="m-venue">Spielort</label><input id="m-venue" maxlength="40" placeholder="Sportplatz Peggau"></div>
+      <div><label for="m-home">Heimverein</label><input id="m-home" maxlength="40" placeholder="ASV Gösting"></div>
+      <div><label for="m-away">Gastverein (Gegner)</label><input id="m-away" maxlength="40" placeholder="Gegner eingeben"></div>
+      <div><label for="m-league">Liga</label><input id="m-league" maxlength="30" placeholder="STFV 1. KLASSE" value="STFV 1. KLASSE"></div>
+     </div>
+     <div class="logo-box">
+      <div class="logo-slot"><label>Logo Heim (Poster-Hintergrund)</label><img id="home-logo-prev" alt="" hidden><input id="m-home-logo" type="file" accept="image/*"></div>
+      <div class="logo-slot"><label>Logo Gast</label><img id="away-logo-prev" alt="" hidden><input id="m-away-logo" type="file" accept="image/*"></div>
+     </div>
+     <div style="margin-top:20px"><button id="save-match" class="glass-btn primary" type="button"><i data-lucide="save"></i> Spieltag speichern</button></div>
+    </div>
+    <div class="glass-card">
+     <div class="nom-head"><label>SPIELER NOMINIEREN</label><span class="sub" id="nom-counter">0 / 17</span></div>
+     <div id="nominate-list"></div>
+    </div>
+   </div>
+   <div class="kader-actions">
+    <button id="gen-poster" class="glass-btn primary" type="button"><i data-lucide="sparkles"></i> Kaderliste generieren</button>
+    <button id="download-poster" class="glass-btn" type="button"><i data-lucide="download"></i> PNG herunterladen</button>
+   </div>
+   <div class="poster-stage">
+    <div id="poster" class="poster" data-size="medium">
+     <div class="poster-bg-logo" id="poster-bg-logo"></div>
+     <div class="glow-1"></div><div class="glow-2"></div><div class="glow-3"></div>
+     <div class="grid-pattern"></div><div class="diag-lines"></div>
+     <div class="content" id="poster-content">
+      <div class="p-empty">Klicke „Kaderliste generieren", um das Poster zu erstellen.</div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </section>
+
+ <p id="message" class="message"></p>
+</main>
+
+<div id="player-detail-backdrop" class="player-modal-backdrop" role="dialog" aria-modal="true">
+ <div class="player-modal">
+  <button class="player-modal-close" id="player-detail-close" type="button" title="Schließen"><i data-lucide="x"></i></button>
+  <div class="player-modal-header">
+   <div class="player-info"><h3 class="player-name" id="pd-name"></h3><div class="player-vorname" id="pd-vorname"></div></div>
+   <div class="player-id-badge" id="pd-season"></div>
+  </div>
+  <div class="player-modal-body">
+   <div class="player-stats-grid">
+    <div class="player-stat-card"><div class="stat-label">Teilnahmen</div><div class="stat-value" id="pd-attended">0</div><div class="stat-sub" id="pd-attended-sub">von 0 Tagen</div></div>
+    <div class="player-stat-card"><div class="stat-label">Entschuldigt</div><div class="stat-value" id="pd-excused">0</div><div class="stat-sub">Trainingstage</div></div>
+    <div class="player-stat-card"><div class="stat-label">Einzeltraining</div><div class="stat-value" id="pd-et">0</div><div class="stat-sub">Trainingstage</div></div>
+    <div class="player-stat-card"><div class="stat-label">Fehltage</div><div class="stat-value" id="pd-absent">0</div><div class="stat-sub">ohne Entschuldigung</div></div>
+    <div class="player-stat-card"><div class="stat-label">Trainingstage</div><div class="stat-value" id="pd-total-days">0</div><div class="stat-sub" id="pd-total-days-sub">im Jahr</div></div>
+    <div class="player-stat-card highlight"><div class="stat-label">Teilnahmequote</div><div class="stat-value" id="pd-rate">0%</div><div class="stat-sub">T + ET</div></div>
+   </div>
+   <div class="player-rate-section">
+    <div class="player-rate-header"><span class="rate-title" id="pd-rate-title">Gesamtleistung</span><span class="rate-percent" id="pd-rate-bar-label">0%</span></div>
+    <div class="player-rate-bar"><div class="player-rate-bar-fill" id="pd-rate-bar-fill" style="width:0%"></div></div>
+   </div>
+   <div class="player-monthly-section">
+    <div class="player-monthly-title" id="pd-monthly-title">Monatsübersicht</div>
+    <div class="player-monthly-grid" id="pd-monthly-grid"></div>
+   </div>
+   <div class="player-legend">
+    <div class="player-legend-item"><span class="legend-badge t">T</span> Teilgenommen</div>
+    <div class="player-legend-item"><span class="legend-badge e">E</span> Entschuldigt</div>
+    <div class="player-legend-item"><span class="legend-badge et">ET</span> Einzeltraining</div>
+    <div class="player-legend-item"><span class="legend-badge none">−</span> Fehlt</div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<div id="modal-backdrop" class="modal-backdrop">
+ <div class="modal">
+  <h2 id="modal-title"></h2><p id="modal-description"></p><div id="modal-content"></div>
+  <div class="modal-actions">
+   <button id="modal-delete" class="btn danger" type="button" hidden>Entfernen</button>
+   <button id="modal-cancel" class="btn" type="button">Abbrechen</button>
+   <button id="modal-save" class="btn primary" type="button">Speichern</button>
+  </div>
+ </div>
+</div>
+<div id="pin-backdrop" class="modal-backdrop">
+ <div class="modal">
+  <div class="pin-icon-wrap"><i data-lucide="shield-check"></i></div>
+  <h2 id="pin-title" style="text-align:center">Zugriffsschutz</h2>
+  <p id="pin-description" style="text-align:center">Bitte gib deinen Master-PIN ein.</p>
+  <input id="pin-input" class="pin-input" type="password" maxlength="10" inputmode="numeric" autocomplete="off" placeholder="••••">
+  <p id="pin-hint" class="pin-hint"></p>
+  <div class="modal-actions">
+   <button id="pin-cancel" class="btn" type="button">Abbrechen</button>
+   <button id="pin-submit" class="btn primary" type="button">Entsperren</button>
+  </div>
+ </div>
+</div>
+
+<script>
+const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const monthNamesShort=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const weekday=['So','Mo','Di','Mi','Do','Fr','Sa'];
+const now=new Date();
+let month=now.getMonth(),year=now.getFullYear(),records=[],ready=false,modalState=null,showAll=false;
+const $=id=>document.getElementById(id);
+
+const PIN_STORAGE_KEY='teamtrack_pin_hash_v1';
+const SESSION_KEY='teamtrack_session_v1';
+const SESSION_TIMEOUT=10*60*1000;
+let pendingAction=null,inactivityTimer=null;
+
+async function sha256(text){const buffer=new TextEncoder().encode(text);const hashBuffer=await crypto.subtle.digest('SHA-256',buffer);const hashArray=Array.from(new Uint8Array(hashBuffer));return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function isPinSetup(){return !!localStorage.getItem(PIN_STORAGE_KEY)}
+async function setupPin(pin){localStorage.setItem(PIN_STORAGE_KEY,await sha256(pin))}
+async function verifyPin(pin){const storedHash=localStorage.getItem(PIN_STORAGE_KEY);if(!storedHash)return false;return(await sha256(pin))===storedHash}
+function isUnlocked(){const session=sessionStorage.getItem(SESSION_KEY);if(!session)return false;if(Date.now()-parseInt(session,10)>SESSION_TIMEOUT){sessionStorage.removeItem(SESSION_KEY);return false}return true}
+function setUnlocked(){sessionStorage.setItem(SESSION_KEY,Date.now().toString());resetInactivityTimer();updateLockUI()}
+function lock(){sessionStorage.removeItem(SESSION_KEY);clearTimeout(inactivityTimer);updateLockUI()}
+function resetInactivityTimer(){clearTimeout(inactivityTimer);inactivityTimer=setTimeout(()=>{if(isUnlocked()){lock();message('Automatisch gesperrt.')}},SESSION_TIMEOUT)}
+function updateLockUI(){const btn=$('lock-toggle');const unlocked=isUnlocked();btn.classList.toggle('unlocked',unlocked);btn.classList.toggle('locked',!unlocked);btn.innerHTML=unlocked?'<i data-lucide="lock-open"></i><span>Entsperrt</span>':'<i data-lucide="lock"></i><span>Gesperrt</span>';iconize()}
+function openPinModal(actionCallback){pendingAction=actionCallback;$('pin-backdrop').classList.add('open');$('pin-input').value='';$('pin-input').classList.remove('error');$('pin-hint').textContent='';isPinSetup().then(setup=>{if(!setup){$('pin-title').textContent='Master-PIN einrichten';$('pin-description').textContent='Lege jetzt deinen Master-PIN fest.';$('pin-submit').textContent='PIN festlegen'}else{$('pin-title').textContent='Zugriffsschutz';$('pin-description').textContent='Bitte gib deinen Master-PIN ein.';$('pin-submit').textContent='Entsperren'}});setTimeout(()=>$('pin-input').focus(),50);iconize()}
+function closePinModal(){$('pin-backdrop').classList.remove('open');$('pin-input').value='';$('pin-input').classList.remove('error');pendingAction=null}
+async function handlePinSubmit(){const pin=$('pin-input').value.trim();if(!pin){$('pin-input').classList.add('error');$('pin-hint').textContent='Bitte PIN eingeben.';setTimeout(()=>$('pin-input').classList.remove('error'),400);return}const setup=await isPinSetup();if(!setup){if(pin.length<4){$('pin-input').classList.add('error');$('pin-hint').textContent='PIN muss mindestens 4 Zeichen lang sein.';setTimeout(()=>$('pin-input').classList.remove('error'),400);return}await setupPin(pin);setUnlocked();closePinModal();message('Master-PIN eingerichtet.',true);if(pendingAction)pendingAction()}else{const valid=await verifyPin(pin);if(valid){setUnlocked();closePinModal();message('Zugriff gewährt.',true);if(pendingAction)pendingAction()}else{$('pin-input').classList.add('error');$('pin-hint').textContent='Falscher PIN.';$('pin-input').value='';setTimeout(()=>$('pin-input').classList.remove('error'),400)}}}
+function requireAuth(actionCallback){if(isUnlocked()){resetInactivityTimer();actionCallback()}else openPinModal(actionCallback)}
+
+function iconize(){if(typeof lucide!=='undefined'&&lucide.createIcons)lucide.createIcons()}
+function message(text,ok=false){$('message').textContent=text;$('message').className='message'+(ok?' ok':'');setTimeout(()=>{if($('message').textContent===text){$('message').textContent='';$('message').className='message'}},3000)}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function parseStatuses(row){try{return JSON.parse(row.statuses_json||'{}')||{}}catch{return{}}}
+function players(){return records.filter(r=>r.record_type==='player').sort((a,b)=>String(a.name).localeCompare(String(b.name),'de')||String(a.vorname).localeCompare(String(b.vorname),'de'))}
+function currentDays(){return records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(`${year}-${String(month+1).padStart(2,'0')}-`)).sort((a,b)=>a.training_date.localeCompare(b.training_date))}
+function getRateColor(rate){if(rate>=75)return'#16845c';if(rate>=50)return'#b77712';return'#c44d4d'}
+
+function openPlayerDetail(playerId, monthFilter){
+  const player=records.find(r=>r.__backendId===playerId && r.record_type==='player');
+  if(!player)return;
+  const statuses=parseStatuses(player);
+  const allDays=records.filter(r=>r.record_type==='day').sort((a,b)=>a.training_date.localeCompare(b.training_date));
+  let daysToAnalyze=allDays;
+  if(monthFilter!==undefined && monthFilter!==null){const monthStr=`${year}-${String(monthFilter+1).padStart(2,'0')}`;daysToAnalyze=allDays.filter(d=>d.training_date.startsWith(monthStr));}
+  let attended=0,excused=0,et=0,absent=0;
+  daysToAnalyze.forEach(d=>{const s=statuses[d.training_date];if(s==='T')attended++;else if(s==='E')excused++;else if(s==='ET')et++;else absent++});
+  const totalDays=daysToAnalyze.length;
+  const rate=totalDays?Math.round(((attended+et)/totalDays)*100):0;
+  const rateColor=getRateColor(rate);
+  $('pd-name').textContent=player.name.toUpperCase();$('pd-vorname').textContent=player.vorname;
+  if(monthFilter!==undefined && monthFilter!==null){$('pd-season').textContent=`${months[monthFilter].toUpperCase()} ${year}`;$('pd-rate-title').textContent=`Leistung ${months[monthFilter]} ${year}`;$('pd-attended-sub').textContent=`von ${totalDays} Tagen`;$('pd-total-days-sub').textContent=`im ${months[monthFilter]}`;$('pd-monthly-title').textContent=`Tagesübersicht ${months[monthFilter]} ${year}`;}
+  else{$('pd-season').textContent=`SAISON ${year}`;$('pd-rate-title').textContent='Gesamtleistung';$('pd-attended-sub').textContent=`von ${totalDays} Tagen`;$('pd-total-days-sub').textContent='im Jahr';$('pd-monthly-title').textContent=`Monatsübersicht ${year}`;}
+  $('pd-attended').textContent=attended;$('pd-excused').textContent=excused;$('pd-et').textContent=et;$('pd-absent').textContent=absent;$('pd-total-days').textContent=totalDays;
+  $('pd-rate').textContent=rate+'%';$('pd-rate').style.color=rateColor;
+  $('pd-rate-bar-label').textContent=rate+'%';$('pd-rate-bar-label').style.color=rateColor;
+  $('pd-rate-bar-fill').style.width=rate+'%';$('pd-rate-bar-fill').style.background=`linear-gradient(90deg,${rateColor},#21a67a)`;
+  if(monthFilter!==undefined && monthFilter!==null){
+    const monthStr=`${year}-${String(monthFilter+1).padStart(2,'0')}`;const monthDays=allDays.filter(d=>d.training_date.startsWith(monthStr));
+    if(monthDays.length===0){$('pd-monthly-grid').innerHTML='<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Monat</div>';}
+    else{$('pd-monthly-grid').innerHTML=monthDays.map(d=>{const date=new Date(d.training_date+'T12:00:00');const dayLabel=`${String(date.getDate()).padStart(2,'0')}.${String(monthFilter+1).padStart(2,'0')}`;const s=statuses[d.training_date];let badgeClass='none',badgeText='−';if(s==='T'){badgeClass='t';badgeText='T';}else if(s==='E'){badgeClass='e';badgeText='E';}else if(s==='ET'){badgeClass='et';badgeText='ET';}return`<div class="player-month-card has-data"><div class="month-name">${dayLabel} ${weekday[date.getDay()]}</div><div class="month-stats"><span class="legend-badge ${badgeClass}" style="display:inline-grid">${badgeText}</span></div><div class="month-rate">${s||'Fehlt'}</div></div>`}).join('');}
+  }else{
+    const monthlyData=[];for(let m=0;m<12;m++){const mStr=`${year}-${String(m+1).padStart(2,'0')}`;const daysInMonth=allDays.filter(d=>d.training_date.startsWith(mStr));if(daysInMonth.length===0)continue;let mAttended=0,mExcused=0,mEt=0,mAbsent=0;daysInMonth.forEach(d=>{const s=statuses[d.training_date];if(s==='T')mAttended++;else if(s==='E')mExcused++;else if(s==='ET')mEt++;else mAbsent++});monthlyData.push({name:monthNamesShort[m],days:daysInMonth.length,attended:mAttended,et:mEt,rate:daysInMonth.length?Math.round(((mAttended+mEt)/daysInMonth.length)*100):0});}
+    $('pd-monthly-grid').innerHTML=monthlyData.map(m=>`<div class="player-month-card ${m.days>0?'has-data':''}"><div class="month-name">${m.name}</div><div class="month-stats">${m.attended+m.et}/${m.days}</div><div class="month-rate" style="color:${getRateColor(m.rate)}">${m.rate}%</div></div>`).join('')||'<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Jahr</div>';
+  }
+  $('player-detail-backdrop').classList.add('open');iconize();
+}
+function closePlayerDetail(){$('player-detail-backdrop').classList.remove('open')}
+$('player-detail-close').addEventListener('click',closePlayerDetail);
+$('player-detail-backdrop').addEventListener('click',e=>{if(e.target===$('player-detail-backdrop'))closePlayerDetail()});
+
+function renderOverview(ps){
+  try{
+    let headHtml='<tr><th class="name-cell" scope="col">Name</th><th class="first-cell" scope="col">Vorname</th>';
+    for(let m=0;m<12;m++)headHtml+=`<th class="day-col" scope="col">${monthNamesShort[m]}</th>`;
+    headHtml+='<th class="rate-col" scope="col">Gesamtquote</th></tr>';
+    $('overview-head').innerHTML=headHtml;$('overview-sub').textContent=`Detaillierte Teilnahme aller Spieler im Jahr ${year}`;
+    let globalAttended=0,globalDays=0;
+    if(!ps.length){$('overview-body').innerHTML=`<tr><td colspan="15"><div class="empty"><i data-lucide="users-round"></i><strong>Keine Spieler vorhanden</strong></div></td></tr>`;return{days:0,rate:0};}
+    const bodyHtml=ps.map(p=>{const statuses=parseStatuses(p);let playerAttended=0,playerDays=0,monthCells='';for(let m=0;m<12;m++){const monthStr=`${year}-${String(m+1).padStart(2,'0')}`;const daysInMonth=records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(monthStr));const mDaysCount=daysInMonth.length;if(mDaysCount>0){const mAttended=daysInMonth.filter(d=>{const s=statuses[d.training_date];return s==='T'||s==='ET'}).length;playerAttended+=mAttended;playerDays+=mDaysCount;monthCells+=`<td class="day-col"><span style="font-weight:700">${mAttended}/${mDaysCount}</span></td>`;}else monthCells+=`<td class="day-col" style="color:#b4c0be">–</td>`;}globalAttended+=playerAttended;globalDays+=playerDays;const totalRate=playerDays>0?Math.round((playerAttended/playerDays)*100):0;const rateColor=getRateColor(totalRate);return`<tr><td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td><td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>${monthCells}<td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${totalRate}%;background:${rateColor}"></div></div><span class="rate-value" style="color:${rateColor}">${totalRate}%</span></div></td></tr>`}).join('');
+    $('overview-body').innerHTML=bodyHtml;const globalRate=globalDays>0?Math.round((globalAttended/globalDays)*100):0;return{days:globalDays,rate:globalRate};
+  }catch(e){console.error('renderOverview Fehler:',e);return{days:0,rate:0}}
+}
+
+function render(){
+  try{
+    const ps=players(),days=currentDays(),overall=renderOverview(ps);
+    $('overview-panel').hidden=!showAll;$('attendance-panel').hidden=showAll;$('training-actions').hidden=showAll;
+    $('period-label').textContent=`${months[month]} ${year} · ${days.length} Trainingstag${days.length===1?'':'e'}`;
+    $('stat-players').textContent=ps.length;$('stat-days').textContent=showAll?overall.days:days.length;
+    let total=0;
+    const head='<tr><th class="name-cell" scope="col">Name</th><th class="first-cell" scope="col">Vorname</th>'+days.map(d=>{const date=new Date(d.training_date+'T12:00:00');return`<th class="day-col day-head" scope="col"><span class="date-top">${String(date.getDate()).padStart(2,'0')}.${String(month+1).padStart(2,'0')}</span><span class="date-bottom">${weekday[date.getDay()]}</span><button class="remove-day" type="button" data-remove-day="${escapeHtml(d.__backendId)}" title="Entfernen"><i data-lucide="x"></i></button></th>`}).join('')+'<th class="total-col" scope="col">Teilnahmen</th><th class="rate-col" scope="col">Quote</th><th class="actions-col" scope="col"> </th></tr>';
+    $('table-head').innerHTML=head;
+    if(!ps.length){$('table-body').innerHTML=`<tr><td colspan="${Math.max(5,days.length+5)}"><div class="empty"><i data-lucide="users-round"></i><strong>Noch keine Spieler eingetragen</strong></div></td></tr>`;}
+    else{$('table-body').innerHTML=ps.map(p=>{const statuses=parseStatuses(p);const count=days.filter(d=>['T','ET'].includes(statuses[d.training_date])).length;const rate=days.length?Math.round(count/days.length*100):0;total+=rate;const rateColor=getRateColor(rate);return`<tr><td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td><td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>${days.map(d=>{const st=statuses[d.training_date]||'';const displaySymbol=st||'−';const statusClass=st?st.toLowerCase():'none';return`<td class="day-col"><button type="button" class="status-btn ${statusClass}" data-status-player="${escapeHtml(p.__backendId)}" data-status-date="${escapeHtml(d.training_date)}" title="Status ändern">${displaySymbol}</button></td>`}).join('')}<td class="total-col"><span class="total-num">${count}</span> <span style="color:#9aabaa;font-size:11px">/ ${days.length}</span></td><td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${rateColor}"></div></div><span class="rate-value" style="color:${rateColor}">${rate}%</span></div></td><td class="actions-col"><button type="button" class="icon-btn" data-edit-player="${escapeHtml(p.__backendId)}"><i data-lucide="pencil"></i></button></td></tr>`}).join('');}
+    $('stat-rate').textContent=(showAll?overall.rate:(ps.length?Math.round(total/ps.length):0))+' %';iconize();
+  }catch(e){console.error('render() Fehler:',e)}
+}
+
+function setDateBounds(){const prefix=`${year}-${String(month+1).padStart(2,'0')}`,last=new Date(year,month+1,0).getDate();$('date-input').min=prefix+'-01';$('date-input').max=prefix+'-'+String(last).padStart(2,'0');if(!$('date-input').value.startsWith(prefix))$('date-input').value=prefix+'-'+String(Math.min(now.getDate(),last)).padStart(2,'0')}
+
+function closeModal(){$('modal-backdrop').classList.remove('open');$('modal-delete').dataset.confirm='';$('modal-delete').textContent='Entfernen';modalState=null}
+function openModal(type,data={}){modalState={type,...data};$('modal-backdrop').classList.add('open');$('modal-delete').hidden=true;$('modal-save').hidden=false;if(type==='player'){const p=data.player;$('modal-title').textContent=p?'Spieler bearbeiten':'Spieler hinzufügen';$('modal-description').textContent='Trage Name und Vorname ein.';$('modal-content').innerHTML=`<div class="fields"><div><label for="player-name">Name</label><input id="player-name" maxlength="80" value="${escapeHtml(p?.name||'')}"></div><div><label for="player-first">Vorname</label><input id="player-first" maxlength="80" value="${escapeHtml(p?.vorname||'')}"></div></div>`;$('modal-save').textContent=p?'Änderungen speichern':'Spieler hinzufügen';$('modal-delete').hidden=!p;setTimeout(()=>$('player-name').focus(),50)}else if(type==='status'){$('modal-title').textContent='Trainingsstatus';$('modal-description').textContent=`${data.player.vorname} ${data.player.name} · ${new Date(data.date+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}`;$('modal-content').innerHTML='<div class="status-options"><button type="button" class="status-option" data-choice="T">T</button><button type="button" class="status-option" data-choice="E">E</button><button type="button" class="status-option" data-choice="ET">ET</button><button type="button" class="status-option" data-choice="">−</button></div>';$('modal-save').hidden=true}else{$('modal-title').textContent='Trainingstag entfernen?';$('modal-description').textContent='Der Tag wird aus dem Raster entfernt.';$('modal-content').innerHTML='';$('modal-save').textContent='Tag entfernen'}}
+
+const STORAGE_KEY='teamtrack_data_v1';
+const localDataSdk={async init(){try{const data=localStorage.getItem(STORAGE_KEY);records=data?JSON.parse(data):[];records.forEach(r=>{if(!r.__backendId)r.__backendId='id_'+Date.now()+'_'+Math.random().toString(36).substr(2,9)});return{isOk:true}}catch(e){console.error('Init error:',e);return{isOk:false}}},async create(record){const newRecord={...record,__backendId:'id_'+Date.now()+'_'+Math.random().toString(36).substr(2,9)};records.push(newRecord);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));return{isOk:true}},async update(record){const index=records.findIndex(r=>r.__backendId===record.__backendId);if(index!==-1){records[index]={...record};localStorage.setItem(STORAGE_KEY,JSON.stringify(records))}return{isOk:true}},async delete(record){records=records.filter(r=>r.__backendId!==record.__backendId);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));return{isOk:true}}};
+if(!window.dataSdk)window.dataSdk=localDataSdk;
+
+// ===== 26 MATCHDAYS MIT isHome =====
+const MATCHDAYS_KEY='teamtrack_matchdays_v3';
+const MAX_NOM=17;
+const TOTAL_MATCHDAYS=26;
+let view='training';
+let currentMatchdayIndex=null;
+let matchdays=loadMatchdays();
+
+function emptyMatchday(i){return{matchday:i+1,date:'',time:'',venue:'',home:'',away:'',league:'STFV 1. KLASSE',isHome:true,homeLogo:'',awayLogo:'',nominations:[]}}
+function loadMatchdays(){
+  try{
+    const d=JSON.parse(localStorage.getItem(MATCHDAYS_KEY));
+    if(Array.isArray(d) && d.length===TOTAL_MATCHDAYS) return d;
+  }catch{}
+  const arr=[];for(let i=0;i<TOTAL_MATCHDAYS;i++)arr.push(emptyMatchday(i));
+  return arr;
+}
+function saveMatchdays(){localStorage.setItem(MATCHDAYS_KEY,JSON.stringify(matchdays))}
+function currentMatchday(){return currentMatchdayIndex!==null?matchdays[currentMatchdayIndex]:null}
+
+$('tab-training').addEventListener('click',()=>{view='training';document.body.dataset.view='training';$('tab-training').classList.add('active');$('tab-kader').classList.remove('active');iconize()});
+$('tab-kader').addEventListener('click',()=>{
+  view='kader';document.body.dataset.view='kader';
+  $('tab-kader').classList.add('active');$('tab-training').classList.remove('active');
+  showMatchdayOverview();iconize();
+});
+
+function showMatchdayOverview(){
+  $('matchday-overview').classList.remove('hidden');
+  $('matchday-detail').classList.remove('active');
+  renderMatchdayGrid();
+}
+
+// ===== NEUE KACHEL MIT GEGNER + H/A =====
+function renderMatchdayGrid(){
+  let filledCount=0,totalPlayers=0;
+  let html='';
+  matchdays.forEach((md,i)=>{
+    const hasData=md.date||md.home||md.away||md.nominations.length>0;
+    if(hasData)filledCount++;
+    totalPlayers+=md.nominations.length;
+    
+    // H/A bestimmen
+    let locationClass='none';
+    let locationText='–';
+    if(md.isHome===true){locationClass='home';locationText='H';}
+    else if(md.isHome===false){locationClass='away';locationText='A';}
+    
+    // Gegner bestimmen
+    let opponentHtml='';
+    if(md.isHome===true && md.away){
+      opponentHtml=`<span class="vs-label">vs</span><span class="opp-name">${escapeHtml(md.away)}</span>`;
+    }else if(md.isHome===false && md.home){
+      opponentHtml=`<span class="vs-label">@</span><span class="opp-name">${escapeHtml(md.home)}</span>`;
+    }else if(md.home || md.away){
+      const other=md.isHome?md.away:md.home;
+      if(other) opponentHtml=`<span class="opp-name">${escapeHtml(other)}</span>`;
+    }
+    
+    const info=md.date?(md.date+(md.time?' · '+md.time:'')):(hasData?'Geplant':'Noch nicht geplant');
+    
+    html+=`<div class="matchday-card ${hasData?'has-data':''}" data-md-index="${i}">
+      <div class="md-top">
+        <div class="md-number">SPIELTAG</div>
+        <div class="md-location ${locationClass}">${locationText}</div>
+      </div>
+      <div class="md-title">${md.matchday}</div>
+      <div class="md-opponent">${opponentHtml||'<span style="color:rgba(255,255,255,0.3)">–</span>'}</div>
+      <div class="md-info">${escapeHtml(info)}</div>
+      <div class="md-players"><strong>${md.nominations.length}</strong> / ${MAX_NOM} Spieler</div>
+    </div>`;
+  });
+  $('matchday-grid').innerHTML=html;
+  $('md-filled-count').textContent=filledCount;
+  $('md-total-players').textContent=totalPlayers;
+  iconize();
+}
+
+$('matchday-grid').addEventListener('click',e=>{
+  const card=e.target.closest('.matchday-card');
+  if(!card)return;
+  const idx=parseInt(card.dataset.mdIndex,10);
+  openMatchdayDetail(idx);
+});
+
+function openMatchdayDetail(idx){
+  currentMatchdayIndex=idx;
+  const md=matchdays[idx];
+  $('matchday-overview').classList.add('hidden');
+  $('matchday-detail').classList.add('active');
+  $('detail-title').textContent=`MATCHDAY ${md.matchday}`;
+  $('detail-badge').textContent=`MD ${md.matchday}`;
+  fillMatchdayForm(md);
+  renderNominate();
+  updatePosterBgLogo();
+  iconize();
+}
+
+function fillMatchdayForm(md){
+  $('m-date').value=md.date||'';
+  $('m-time').value=md.time||'';
+  $('m-venue').value=md.venue||'';
+  $('m-home').value=md.home||'';
+  $('m-away').value=md.away||'';
+  $('m-league').value=md.league||'STFV 1. KLASSE';
+  $('m-location').value=md.isHome===false?'away':'home';
+  showLogo('home');showLogo('away');
+}
+
+function showLogo(side){
+  const md=currentMatchday();if(!md)return;
+  const img=$(side+'-logo-prev');
+  const src=side==='home'?md.homeLogo:md.awayLogo;
+  if(src){img.src=src;img.hidden=false}else img.hidden=true;
+}
+
+$('back-to-overview').addEventListener('click',()=>{
+  saveCurrentMatchdayForm();
+  showMatchdayOverview();
+});
+
+function saveCurrentMatchdayForm(){
+  if(currentMatchdayIndex===null)return;
+  const md=matchdays[currentMatchdayIndex];
+  md.date=$('m-date').value.trim();
+  md.time=$('m-time').value.trim();
+  md.venue=$('m-venue').value.trim();
+  md.home=$('m-home').value.trim();
+  md.away=$('m-away').value.trim();
+  md.league=$('m-league').value.trim()||'STFV 1. KLASSE';
+  md.isHome=$('m-location').value==='home';
+  saveMatchdays();
+}
+
+function renderNominate(){
+  const md=currentMatchday();if(!md)return;
+  const ps=players();
+  $('nom-counter').textContent=`${md.nominations.length} / ${MAX_NOM}`;
+  if(!ps.length){$('nominate-list').innerHTML='<div class="empty" style="padding:30px 10px;color:rgba(255,255,255,0.5)"><i data-lucide="users-round"></i><strong style="color:rgba(255,255,255,0.7)">Keine Spieler im Kader</strong>Erst Spieler im Training-Tab anlegen.</div>';iconize();return;}
+  let html='';ps.forEach(p=>{const n=md.nominations.find(x=>x.id===p.__backendId);html+=`<div class="nom-row"><input type="checkbox" data-nom="${p.__backendId}" ${n?'checked':''}><input class="num-input" data-num="${p.__backendId}" maxlength="2" inputmode="numeric" value="${n&&n.number?n.number:''}" placeholder="Nr" ${n?'':'disabled'}><span class="nom-name">${escapeHtml(p.name)}, ${escapeHtml(p.vorname)}</span></div>`});
+  $('nominate-list').innerHTML=html;iconize();
+}
+
+$('nominate-list').addEventListener('change',e=>{
+  if(e.target.type==='checkbox'){
+    const id=e.target.dataset.nom;const checked=e.target.checked;
+    requireAuth(()=>{
+      const md=currentMatchday();if(!md)return;
+      const has=md.nominations.some(n=>n.id===id);
+      if(checked){if(!has){if(md.nominations.length>=MAX_NOM){message(`Maximal ${MAX_NOM} Spieler.`);renderNominate();return}md.nominations.push({id,number:''});}}
+      else md.nominations=md.nominations.filter(n=>n.id!==id);
+      saveMatchdays();renderNominate();
+    });
+  }
+});
+
+$('nominate-list').addEventListener('input',e=>{
+  if(e.target.classList.contains('num-input')){
+    const id=e.target.dataset.num;const val=e.target.value.replace(/\D/g,'');e.target.value=val;
+    requireAuth(()=>{const md=currentMatchday();if(!md)return;const n=md.nominations.find(x=>x.id===id);if(n){n.number=val;saveMatchdays()}});
+  }
+});
+
+$('save-match').addEventListener('click',()=>{
+  requireAuth(()=>{
+    saveCurrentMatchdayForm();
+    message('Spieltag gespeichert.',true);
+  });
+});
+
+function bindLogo(inputId,side){
+  $(inputId).addEventListener('change',e=>{
+    const file=e.target.files[0];if(!file)return;
+    if(file.size>400*1024){message('Bild zu groß – max. 400 KB.');e.target.value='';return}
+    requireAuth(()=>{
+      const reader=new FileReader();
+      reader.onload=()=>{
+        const md=currentMatchday();if(!md)return;
+        if(side==='home')md.homeLogo=reader.result;else md.awayLogo=reader.result;
+        saveMatchdays();showLogo(side);message('Logo gespeichert.',true);
+        if(side==='home')updatePosterBgLogo();
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+bindLogo('m-home-logo','home');bindLogo('m-away-logo','away');
+
+function updatePosterBgLogo(){
+  const md=currentMatchday();
+  const bgLogoEl=$('poster-bg-logo');
+  if(md && md.homeLogo){bgLogoEl.innerHTML=`<img src="${md.homeLogo}" alt="Vereinslogo Hintergrund">`;}
+  else{bgLogoEl.innerHTML='';}
+}
+
+$('gen-poster').addEventListener('click',()=>{
+  const md=currentMatchday();if(!md){message('Kein Spieltag ausgewählt.');return}
+  if(!md.nominations.length){message('Bitte mindestens einen Spieler nominieren.');return}
+  const nominatedPlayers=[];
+  md.nominations.forEach(nom=>{const player=records.find(r=>r.__backendId===nom.id && r.record_type==='player');if(player){nominatedPlayers.push({name:player.name,vorname:player.vorname,number:nom.number||'–'})}});
+  nominatedPlayers.sort((a,b)=>a.name.localeCompare(b.name,'de'));
+  if(nominatedPlayers.length===0){message('Keine nominierten Spieler gefunden.');return}
+  const poster=$('poster');const count=nominatedPlayers.length;
+  if(count<=8)poster.dataset.size='large';else if(count<=12)poster.dataset.size='medium';else if(count<=15)poster.dataset.size='small';else poster.dataset.size='xsmall';
+  const half=Math.ceil(count/2);const leftCol=nominatedPlayers.slice(0,half);const rightCol=nominatedPlayers.slice(half);
+  function buildColumn(list){return list.map(p=>`<div class="p-row"><span class="p-num">${escapeHtml(p.number)}</span><span class="p-name">${escapeHtml((p.name+' '+p.vorname).toUpperCase())}</span></div>`).join('')}
+  const homeLogoHtml=md.homeLogo?`<img src="${md.homeLogo}" alt="Heimlogo">`:`<span class="logo-fallback">${escapeHtml((md.home||'H').charAt(0).toUpperCase())}</span>`;
+  const awayLogoHtml=md.awayLogo?`<img src="${md.awayLogo}" alt="Gastlogo">`:`<span class="logo-fallback">${escapeHtml((md.away||'G').charAt(0).toUpperCase())}</span>`;
+  const dateText=md.date||'--';const timeText=md.time||'--:--';
+  let venueText='SPORTPLATZ';if(md.venue){venueText=md.venue.toUpperCase();if(!venueText.startsWith('SPORTPLATZ'))venueText='SPORTPLATZ '+venueText}
+  const leagueText=md.league||'STFV 1. KLASSE';
+  updatePosterBgLogo();
+  $('poster-content').innerHTML=`
+    <div class="p-header"><div><div class="p-league">${escapeHtml(leagueText)}</div></div><div class="p-trophy">🏆</div></div>
+    <div class="p-title-wrap"><div class="p-title">KADER</div><div class="p-matchday">#MATCHDAY ${md.matchday}</div></div>
+    <div class="p-match-info"><div class="info-block"><span class="info-label">DATUM</span><span class="info-value">${escapeHtml(dateText)}</span></div><div class="info-block"><span class="info-label">ANSTOSS</span><span class="info-value time">${escapeHtml(timeText)}</span></div><div class="info-block"><span class="info-label">SPIELORT</span><span class="info-value">${escapeHtml(venueText)}</span></div></div>
+    <div class="p-teams"><div class="p-team"><div class="p-logo">${homeLogoHtml}</div><div class="p-team-name">${escapeHtml(md.home||'HEIM')}</div></div><div class="p-vs">VS</div><div class="p-team"><div class="p-logo">${awayLogoHtml}</div><div class="p-team-name">${escapeHtml(md.away||'GAST')}</div></div></div>
+    <div class="p-players"><div class="p-col">${buildColumn(leftCol)}</div><div class="p-col">${buildColumn(rightCol)}</div></div>`;
+  message(`Kaderliste Spieltag ${md.matchday} mit ${count} Spielern generiert.`,true);
+});
+
+$('download-poster').addEventListener('click',async()=>{
+  if($('poster-content').querySelector('.p-empty')){message('Bitte zuerst Kaderliste generieren.');return}
+  const btn=$('download-poster');btn.disabled=true;
+  try{
+    if(typeof html2canvas==='undefined'){message('html2canvas nicht geladen.');return}
+    const md=currentMatchday();
+    const canvas=await html2canvas($('poster'),{backgroundColor:'#0a0f0e',scale:2,useCORS:true,logging:false,allowTaint:true});
+    const a=document.createElement('a');a.download=`kader-md${md?md.matchday:'x'}.png`;a.href=canvas.toDataURL('image/png');a.click();
+    message('PNG heruntergeladen.',true);
+  }catch(e){message('Download fehlgeschlagen: '+e.message)}
+  finally{btn.disabled=false}
+});
+
+async function init(){
+  months.forEach((m,i)=>$('month-select').add(new Option(m,i)));
+  $('month-select').add(new Option('Gesamtübersicht','all'));
+  for(let y=now.getFullYear()-5;y<=now.getFullYear()+10;y++)$('year-select').add(new Option(y,y));
+  $('month-select').value=month;$('year-select').value=year;
+  setDateBounds();updateLockUI();
+  const result=await window.dataSdk.init();ready=result.isOk;
+  if(ready)render();else message('Daten konnten nicht geladen werden.');
+}
+
+$('month-select').addEventListener('change',e=>{if(e.target.value==='all'){showAll=true;render()}else{month=Number(e.target.value);showAll=false;setDateBounds();render()}});
+$('year-select').addEventListener('change',e=>{year=Number(e.target.value);if(showAll){render()}else{setDateBounds();render()}});
+
+$('add-day').addEventListener('click',e=>{requireAuth(()=>{const date=$('date-input').value;const prefix=`${year}-${String(month+1).padStart(2,'0')}-`;if(!date||!date.startsWith(prefix)){message('Bitte Tag im aktuellen Monat wählen.');return}if(records.some(r=>r.record_type==='day'&&r.training_date===date)){message('Tag bereits eingetragen.');return}if(records.length>=999){message('Maximum 999 Einträge.');return}enqueue(()=>window.dataSdk.create({record_type:'day',name:'',vorname:'',training_date:date,statuses_json:'',sort_order:0}),e.currentTarget);});});
+$('add-player').addEventListener('click',()=>{requireAuth(()=>openModal('player'))});
+
+$('table-body').addEventListener('click',e=>{
+  const edit=e.target.closest('[data-edit-player]');const status=e.target.closest('[data-status-player]');
+  const nameCell=e.target.closest('.name-cell[data-player-id]');const firstCell=e.target.closest('.first-cell[data-player-id]');
+  if(edit){e.stopPropagation();requireAuth(()=>{const player=records.find(r=>r.__backendId===edit.dataset.editPlayer);if(player)openModal('player',{player})});return;}
+  if(status){e.stopPropagation();requireAuth(()=>{const player=records.find(r=>r.__backendId===status.dataset.statusPlayer);if(player)openModal('status',{player,date:status.dataset.statusDate})});return;}
+  if(nameCell||firstCell){const playerId=(nameCell||firstCell).dataset.playerId;openPlayerDetail(playerId,month);}
+});
+
+$('overview-body').addEventListener('click',e=>{
+  const nameCell=e.target.closest('.name-cell[data-player-id]');const firstCell=e.target.closest('.first-cell[data-player-id]');
+  if(nameCell||firstCell){const playerId=(nameCell||firstCell).dataset.playerId;openPlayerDetail(playerId);}
+});
+
+$('table-head').addEventListener('click',e=>{const btn=e.target.closest('[data-remove-day]');if(btn)requireAuth(()=>{const day=records.find(r=>r.__backendId===btn.dataset.removeDay);if(day)openModal('day',{day})});});
+
+$('modal-content').addEventListener('click',e=>{const btn=e.target.closest('[data-choice]');if(!btn||!modalState)return;const{player,date}=modalState,choice=btn.dataset.choice,statuses=parseStatuses(player);if(choice)statuses[date]=choice;else delete statuses[date];closeModal();enqueue(()=>window.dataSdk.update({...player,statuses_json:JSON.stringify(statuses)}));});
+$('modal-cancel').addEventListener('click',()=>{$('modal-delete').dataset.confirm='';$('modal-delete').textContent='Entfernen';closeModal();});
+$('modal-backdrop').addEventListener('click',e=>{if(e.target===$('modal-backdrop'))closeModal();});
+$('modal-save').addEventListener('click',e=>{if(!modalState)return;const state=modalState;if(state.type==='player'){const name=$('player-name').value.trim(),vorname=$('player-first').value.trim();if(!name||!vorname){message('Bitte Name und Vorname eintragen.');return}closeModal();const action=state.player?()=>window.dataSdk.update({...state.player,name,vorname}):()=>window.dataSdk.create({record_type:'player',name,vorname,training_date:'',statuses_json:'{}',sort_order:Date.now()});enqueue(action,e.currentTarget);}else if(state.type==='day'){closeModal();enqueue(()=>window.dataSdk.delete(state.day),e.currentTarget);}});
+$('modal-delete').addEventListener('click',e=>{if(!modalState?.player)return;const button=e.currentTarget;if(button.dataset.confirm!=='yes'){button.textContent='Wirklich entfernen?';button.dataset.confirm='yes';return}const player=modalState.player;button.dataset.confirm='';button.textContent='Entfernen';closeModal();enqueue(()=>window.dataSdk.delete(player),button);});
+$('pin-submit').addEventListener('click',handlePinSubmit);
+$('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')handlePinSubmit()});
+$('pin-cancel').addEventListener('click',closePinModal);
+$('pin-backdrop').addEventListener('click',e=>{if(e.target===$('pin-backdrop'))closePinModal()});
+$('lock-toggle').addEventListener('click',()=>{if(isUnlocked()){lock();message('Gesichert.')}else openPinModal(null)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePlayerDetail();closePinModal()}});
+['click','keydown','mousemove'].forEach(evt=>document.addEventListener(evt,()=>{if(isUnlocked())resetInactivityTimer()}));
+
+function enqueue(operation,control){if(control)control.disabled=true;Promise.resolve().then(async()=>{try{const result=await operation();if(!result.isOk)message('Speichern fehlgeschlagen.');else{message('Gespeichert.',true);render();if(view==='kader'&&currentMatchdayIndex!==null)renderNominate()}}catch{message('Fehler beim Speichern.')}finally{if(control)control.disabled=false}});}
+
+init();
+</script>
+</body>
+</html>
