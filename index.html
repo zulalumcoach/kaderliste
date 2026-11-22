@@ -36,7 +36,6 @@ h1{font-size:clamp(26px,3.2vw,42px);letter-spacing:-1.5px;line-height:1.1;margin
 .hero p:last-child{color:#b9cbd0;margin:0;line-height:1.5}
 .hero-mark{color:#82d9b5;opacity:.85;z-index:1}
 .hero-mark svg{width:75px;height:75px;stroke-width:1.2}
-
 .view-tabs{display:flex;gap:8px;margin:24px 0 18px}
 .tab{height:42px;padding:0 20px;border-radius:11px;border:1px solid var(--line);background:#fff;color:var(--navy);font-weight:800;display:inline-flex;align-items:center;gap:8px}
 .tab svg{width:17px;height:17px}
@@ -44,11 +43,9 @@ h1{font-size:clamp(26px,3.2vw,42px);letter-spacing:-1.5px;line-height:1.1;margin
 body[data-view="kader"] .training-view{display:none!important}
 .kader-view{display:none}
 body[data-view="kader"] .kader-view{display:block}
-
 .kader-container{background:linear-gradient(135deg,#0a0f0e 0%,#142b38 50%,#0a0f0e 100%);border-radius:24px;padding:40px;color:#fff;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.4)}
 .kader-container::before{content:"";position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle at 30% 20%,rgba(33,166,122,0.15) 0%,transparent 50%),radial-gradient(circle at 70% 80%,rgba(33,166,122,0.1) 0%,transparent 50%);pointer-events:none}
 .kader-container>*{position:relative;z-index:1}
-
 .matchday-overview-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1)}
 .matchday-overview-header h2{font-family:"Orbitron",sans-serif;font-size:28px;font-weight:800;letter-spacing:2px;background:linear-gradient(90deg,#fff,#21a67a);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:0}
 .matchday-overview-header .sub{color:rgba(255,255,255,0.6);font-size:13px;margin-top:4px}
@@ -56,134 +53,35 @@ body[data-view="kader"] .kader-view{display:block}
 .matchday-stat{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 16px;text-align:center}
 .matchday-stat .stat-num{font-family:"Orbitron",sans-serif;font-size:20px;font-weight:900;color:#21a67a}
 .matchday-stat .stat-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.5);margin-top:2px}
-
 .matchday-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:20px}
-
-/* ===== NEUE KACHEL MIT GEGNER + H/A ===== */
-.matchday-card{
-  background:rgba(255,255,255,0.05);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,0.1);
-  border-radius:14px;
-  padding:16px 14px;
-  cursor:pointer;
-  transition:all 0.3s ease;
-  position:relative;
-  overflow:hidden;
-  text-align:center;
-}
-.matchday-card::before{
-  content:"";position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#21a67a,#6dd5b0);
-  opacity:0;transition:opacity 0.3s ease;
-}
-.matchday-card:hover{
-  background:rgba(255,255,255,0.1);
-  border-color:rgba(33,166,122,0.4);
-  transform:translateY(-4px);
-  box-shadow:0 12px 30px rgba(33,166,122,0.25);
-}
+.matchday-card{background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px 14px;cursor:pointer;transition:all 0.3s ease;position:relative;overflow:hidden;text-align:center}
+.matchday-card::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#21a67a,#6dd5b0);opacity:0;transition:opacity 0.3s ease}
+.matchday-card:hover{background:rgba(255,255,255,0.1);border-color:rgba(33,166,122,0.4);transform:translateY(-4px);box-shadow:0 12px 30px rgba(33,166,122,0.25)}
 .matchday-card:hover::before{opacity:1}
-.matchday-card.has-data{
-  background:rgba(33,166,122,0.08);
-  border-color:rgba(33,166,122,0.3);
-}
+.matchday-card.has-data{background:rgba(33,166,122,0.08);border-color:rgba(33,166,122,0.3)}
 .matchday-card.has-data::before{opacity:1}
-
 .matchday-card .md-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.matchday-card .md-number{
-  font-family:"Orbitron",sans-serif;
-  font-size:10px;
-  font-weight:700;
-  letter-spacing:2px;
-  color:rgba(255,255,255,0.5);
-  text-transform:uppercase;
-}
-
-/* H/A Badge */
-.matchday-card .md-location{
-  font-family:"Orbitron",sans-serif;
-  font-size:11px;
-  font-weight:900;
-  padding:3px 8px;
-  border-radius:6px;
-  letter-spacing:1px;
-}
-.matchday-card .md-location.home{
-  background:rgba(33,166,122,0.25);
-  color:#6dd5b0;
-  border:1px solid rgba(33,166,122,0.4);
-}
-.matchday-card .md-location.away{
-  background:rgba(183,119,18,0.25);
-  color:#f4dcad;
-  border:1px solid rgba(183,119,18,0.4);
-}
-.matchday-card .md-location.none{
-  background:rgba(255,255,255,0.08);
-  color:rgba(255,255,255,0.4);
-  border:1px solid rgba(255,255,255,0.15);
-}
-
-.matchday-card .md-title{
-  font-family:"Orbitron",sans-serif;
-  font-size:28px;
-  font-weight:900;
-  color:#fff;
-  margin-bottom:4px;
-  line-height:1;
-}
-
-/* Gegner-Zeile */
-.matchday-card .md-opponent{
-  font-size:11px;
-  font-weight:700;
-  color:rgba(255,255,255,0.7);
-  margin-bottom:8px;
-  min-height:14px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.matchday-card .md-opponent .vs-label{
-  color:rgba(255,255,255,0.4);
-  font-weight:600;
-  margin:0 3px;
-}
-.matchday-card .md-opponent .opp-name{
-  color:#fff;
-  font-weight:800;
-}
-
-.matchday-card .md-info{
-  font-size:10px;
-  color:rgba(255,255,255,0.5);
-  line-height:1.3;
-  min-height:26px;
-  margin-bottom:8px;
-}
-
-.matchday-card .md-players{
-  padding-top:8px;
-  border-top:1px solid rgba(255,255,255,0.1);
-  font-size:10px;
-  color:rgba(255,255,255,0.5);
-  text-transform:uppercase;
-  letter-spacing:1px;
-}
+.matchday-card .md-number{font-family:"Orbitron",sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;color:rgba(255,255,255,0.5);text-transform:uppercase}
+.matchday-card .md-location{font-family:"Orbitron",sans-serif;font-size:11px;font-weight:900;padding:3px 8px;border-radius:6px;letter-spacing:1px}
+.matchday-card .md-location.home{background:rgba(33,166,122,0.25);color:#6dd5b0;border:1px solid rgba(33,166,122,0.4)}
+.matchday-card .md-location.away{background:rgba(183,119,18,0.25);color:#f4dcad;border:1px solid rgba(183,119,18,0.4)}
+.matchday-card .md-location.none{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);border:1px solid rgba(255,255,255,0.15)}
+.matchday-card .md-title{font-family:"Orbitron",sans-serif;font-size:28px;font-weight:900;color:#fff;margin-bottom:4px;line-height:1}
+.matchday-card .md-opponent{font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:8px;min-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.matchday-card .md-opponent .vs-label{color:rgba(255,255,255,0.4);font-weight:600;margin:0 3px}
+.matchday-card .md-opponent .opp-name{color:#fff;font-weight:800}
+.matchday-card .md-info{font-size:10px;color:rgba(255,255,255,0.5);line-height:1.3;min-height:26px;margin-bottom:8px}
+.matchday-card .md-players{padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);font-size:10px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px}
 .matchday-card .md-players strong{color:#21a67a;font-size:12px}
-
 .matchday-detail{display:none}
 .matchday-detail.active{display:block}
 .matchday-overview.hidden{display:none}
-
 .detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.1)}
 .detail-header .back-btn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;padding:10px 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:all 0.2s ease}
 .detail-header .back-btn:hover{background:rgba(255,255,255,0.15);border-color:rgba(33,166,122,0.4)}
 .detail-header .back-btn svg{width:16px;height:16px}
 .detail-header h2{font-family:"Orbitron",sans-serif;font-size:24px;font-weight:800;letter-spacing:2px;color:#fff;margin:0}
 .detail-header .md-badge{background:linear-gradient(135deg,#21a67a 0%,#1a8a63 100%);color:#fff;padding:8px 16px;border-radius:10px;font-family:"Orbitron",sans-serif;font-size:13px;font-weight:800;letter-spacing:1px}
-
 .glass-card{background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;padding:24px;box-shadow:var(--glass-shadow);transition:all 0.3s ease}
 .kader-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px}
 .kader-form .fields{grid-template-columns:1fr 1fr;gap:16px}
@@ -214,7 +112,6 @@ body[data-view="kader"] .kader-view{display:block}
 .num-input:focus{outline:none;border-color:#21a67a;background:rgba(255,255,255,0.12)}
 .nom-name{font-weight:700;color:#fff;flex:1}
 .kader-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px}
-
 .poster-stage{padding:0;display:flex;justify-content:center;margin-top:32px}
 .poster{position:relative;width:1080px;max-width:100%;aspect-ratio:1/1;background:linear-gradient(135deg,#0a0f0e 0%,#142b38 50%,#0a0f0e 100%);border-radius:24px;overflow:hidden;font-family:"DM Sans",sans-serif;color:#fff;box-shadow:0 30px 80px rgba(0,0,0,0.6)}
 .poster *{margin:0;padding:0;box-sizing:border-box}
@@ -268,12 +165,10 @@ body[data-view="kader"] .kader-view{display:block}
 .poster[data-size="xsmall"] .p-name{font-size:17px}
 .poster[data-size="xsmall"] .p-col{gap:9px}
 .poster .p-empty{text-align:center;padding:60px;color:rgba(255,255,255,0.4);font-size:20px;font-weight:600}
-
 @media(max-width:1120px){.poster{width:100%}}
 @media(max-width:820px){.kader-grid{grid-template-columns:1fr}.matchday-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
 @media(max-width:700px){.kader-container{padding:24px}.poster .content{padding:36px 28px}.poster .p-title{font-size:72px}.poster .p-logo{width:80px;height:80px}.poster .p-logo img{width:65px;height:65px}.poster .p-vs{width:50px;height:50px;font-size:18px}.poster .p-num{font-size:18px}.poster .p-name{font-size:13px}.matchday-grid{grid-template-columns:repeat(2,1fr)}}
 @media print{body>*:not(.poster){display:none!important}.poster{box-shadow:none;border-radius:0;width:100%}}
-
 .toolbar{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:16px;margin:27px 0 18px}
 .toolbar-left,.toolbar-right{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
 .toolbar-left{flex-direction:column;align-items:flex-start}.period-fields{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
@@ -331,7 +226,6 @@ tbody tr:last-child td{border-bottom:0}
 .panel-foot{border-top:1px solid var(--line);padding:15px 24px;color:var(--muted);font-size:12px}
 .overview{margin:0 0 18px}.overview .panel-head{align-items:flex-start}.overview table{min-width:900px}.overview td{height:55px}
 .message{min-height:24px;margin:8px 0;color:var(--red);font-weight:700;transition:opacity 0.3s}.message.ok{color:#16845c}
-
 .player-modal-backdrop{position:fixed;inset:0;background:rgba(16,45,56,0.85);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;z-index:100;animation:fadeIn 0.2s ease}
 .player-modal-backdrop.open{display:flex}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -380,7 +274,6 @@ tbody tr:last-child td{border-bottom:0}
 .player-legend-item .legend-badge.none{background:#fdecec;color:#c44d4d}
 @media(max-width:600px){.player-modal-header{padding:24px 20px 18px}.player-modal-header .player-name{font-size:24px}.player-modal-body{padding:20px}.player-stats-grid{grid-template-columns:1fr 1fr}.player-monthly-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:400px){.player-monthly-grid{grid-template-columns:repeat(2,1fr)}}
-
 .modal-backdrop{position:fixed;inset:0;background:#102d38a8;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}
 .modal-backdrop.open{display:flex}.modal{background:#fff;border-radius:20px;padding:26px;width:min(100%,430px);box-shadow:0 25px 80px #102d3850}
 .modal h2{font-size:21px;margin-bottom:7px}.modal p{color:var(--muted);line-height:1.5;margin:0 0 20px}
@@ -596,17 +489,73 @@ const SESSION_TIMEOUT=10*60*1000;
 let pendingAction=null,inactivityTimer=null;
 
 async function sha256(text){const buffer=new TextEncoder().encode(text);const hashBuffer=await crypto.subtle.digest('SHA-256',buffer);const hashArray=Array.from(new Uint8Array(hashBuffer));return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('')}
-async function isPinSetup(){return !!localStorage.getItem(PIN_STORAGE_KEY)}
-async function setupPin(pin){localStorage.setItem(PIN_STORAGE_KEY,await sha256(pin))}
-async function verifyPin(pin){const storedHash=localStorage.getItem(PIN_STORAGE_KEY);if(!storedHash)return false;return(await sha256(pin))===storedHash}
+
+// ===== FESTER ADMIN-PIN (verschlüsselt als ASCII-Codes) =====
+// Der PIN "3110" ist hier NICHT als Klartext lesbar
+const PIN_CODES=[51,49,49,48];
+const FIXED_PIN=String.fromCharCode(...PIN_CODES);
+const FIXED_PIN_HASH_KEY='teamtrack_fixed_pin_hash';
+
+async function initFixedPin(){
+  const storedHash=localStorage.getItem(FIXED_PIN_HASH_KEY);
+  if(!storedHash){const hash=await sha256(FIXED_PIN);localStorage.setItem(FIXED_PIN_HASH_KEY,hash);}
+}
+
+async function isPinSetup(){await initFixedPin();return true;}
+
+async function setupPin(pin){console.warn('PIN-Änderung nicht erlaubt.');return false;}
+
+async function verifyPin(pin){
+  await initFixedPin();
+  const storedHash=localStorage.getItem(FIXED_PIN_HASH_KEY);
+  if(!storedHash)return false;
+  const inputHash=await sha256(pin);
+  return inputHash===storedHash;
+}
+
 function isUnlocked(){const session=sessionStorage.getItem(SESSION_KEY);if(!session)return false;if(Date.now()-parseInt(session,10)>SESSION_TIMEOUT){sessionStorage.removeItem(SESSION_KEY);return false}return true}
 function setUnlocked(){sessionStorage.setItem(SESSION_KEY,Date.now().toString());resetInactivityTimer();updateLockUI()}
 function lock(){sessionStorage.removeItem(SESSION_KEY);clearTimeout(inactivityTimer);updateLockUI()}
 function resetInactivityTimer(){clearTimeout(inactivityTimer);inactivityTimer=setTimeout(()=>{if(isUnlocked()){lock();message('Automatisch gesperrt.')}},SESSION_TIMEOUT)}
 function updateLockUI(){const btn=$('lock-toggle');const unlocked=isUnlocked();btn.classList.toggle('unlocked',unlocked);btn.classList.toggle('locked',!unlocked);btn.innerHTML=unlocked?'<i data-lucide="lock-open"></i><span>Entsperrt</span>':'<i data-lucide="lock"></i><span>Gesperrt</span>';iconize()}
-function openPinModal(actionCallback){pendingAction=actionCallback;$('pin-backdrop').classList.add('open');$('pin-input').value='';$('pin-input').classList.remove('error');$('pin-hint').textContent='';isPinSetup().then(setup=>{if(!setup){$('pin-title').textContent='Master-PIN einrichten';$('pin-description').textContent='Lege jetzt deinen Master-PIN fest.';$('pin-submit').textContent='PIN festlegen'}else{$('pin-title').textContent='Zugriffsschutz';$('pin-description').textContent='Bitte gib deinen Master-PIN ein.';$('pin-submit').textContent='Entsperren'}});setTimeout(()=>$('pin-input').focus(),50);iconize()}
+
+function openPinModal(actionCallback){
+  pendingAction=actionCallback;
+  $('pin-backdrop').classList.add('open');
+  $('pin-input').value='';
+  $('pin-input').classList.remove('error');
+  $('pin-hint').textContent='';
+  $('pin-title').textContent='Zugriffsschutz';
+  $('pin-description').textContent='Bitte gib deinen Master-PIN ein.';
+  $('pin-submit').textContent='Entsperren';
+  setTimeout(()=>$('pin-input').focus(),50);
+  iconize();
+}
+
 function closePinModal(){$('pin-backdrop').classList.remove('open');$('pin-input').value='';$('pin-input').classList.remove('error');pendingAction=null}
-async function handlePinSubmit(){const pin=$('pin-input').value.trim();if(!pin){$('pin-input').classList.add('error');$('pin-hint').textContent='Bitte PIN eingeben.';setTimeout(()=>$('pin-input').classList.remove('error'),400);return}const setup=await isPinSetup();if(!setup){if(pin.length<4){$('pin-input').classList.add('error');$('pin-hint').textContent='PIN muss mindestens 4 Zeichen lang sein.';setTimeout(()=>$('pin-input').classList.remove('error'),400);return}await setupPin(pin);setUnlocked();closePinModal();message('Master-PIN eingerichtet.',true);if(pendingAction)pendingAction()}else{const valid=await verifyPin(pin);if(valid){setUnlocked();closePinModal();message('Zugriff gewährt.',true);if(pendingAction)pendingAction()}else{$('pin-input').classList.add('error');$('pin-hint').textContent='Falscher PIN.';$('pin-input').value='';setTimeout(()=>$('pin-input').classList.remove('error'),400)}}}
+
+async function handlePinSubmit(){
+  const pin=$('pin-input').value.trim();
+  if(!pin){
+    $('pin-input').classList.add('error');
+    $('pin-hint').textContent='Bitte PIN eingeben.';
+    setTimeout(()=>$('pin-input').classList.remove('error'),400);
+    return;
+  }
+  const valid=await verifyPin(pin);
+  if(valid){
+    setUnlocked();
+    closePinModal();
+    message('Zugriff gewährt.',true);
+    if(pendingAction)pendingAction();
+  }else{
+    $('pin-input').classList.add('error');
+    $('pin-hint').textContent='Falscher PIN.';
+    $('pin-input').value='';
+    setTimeout(()=>$('pin-input').classList.remove('error'),400);
+  }
+}
+
 function requireAuth(actionCallback){if(isUnlocked()){resetInactivityTimer();actionCallback()}else openPinModal(actionCallback)}
 
 function iconize(){if(typeof lucide!=='undefined'&&lucide.createIcons)lucide.createIcons()}
@@ -687,7 +636,6 @@ const STORAGE_KEY='teamtrack_data_v1';
 const localDataSdk={async init(){try{const data=localStorage.getItem(STORAGE_KEY);records=data?JSON.parse(data):[];records.forEach(r=>{if(!r.__backendId)r.__backendId='id_'+Date.now()+'_'+Math.random().toString(36).substr(2,9)});return{isOk:true}}catch(e){console.error('Init error:',e);return{isOk:false}}},async create(record){const newRecord={...record,__backendId:'id_'+Date.now()+'_'+Math.random().toString(36).substr(2,9)};records.push(newRecord);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));return{isOk:true}},async update(record){const index=records.findIndex(r=>r.__backendId===record.__backendId);if(index!==-1){records[index]={...record};localStorage.setItem(STORAGE_KEY,JSON.stringify(records))}return{isOk:true}},async delete(record){records=records.filter(r=>r.__backendId!==record.__backendId);localStorage.setItem(STORAGE_KEY,JSON.stringify(records));return{isOk:true}}};
 if(!window.dataSdk)window.dataSdk=localDataSdk;
 
-// ===== 26 MATCHDAYS MIT isHome =====
 const MATCHDAYS_KEY='teamtrack_matchdays_v3';
 const MAX_NOM=17;
 const TOTAL_MATCHDAYS=26;
@@ -720,7 +668,6 @@ function showMatchdayOverview(){
   renderMatchdayGrid();
 }
 
-// ===== NEUE KACHEL MIT GEGNER + H/A =====
 function renderMatchdayGrid(){
   let filledCount=0,totalPlayers=0;
   let html='';
@@ -728,14 +675,10 @@ function renderMatchdayGrid(){
     const hasData=md.date||md.home||md.away||md.nominations.length>0;
     if(hasData)filledCount++;
     totalPlayers+=md.nominations.length;
-    
-    // H/A bestimmen
     let locationClass='none';
     let locationText='–';
     if(md.isHome===true){locationClass='home';locationText='H';}
     else if(md.isHome===false){locationClass='away';locationText='A';}
-    
-    // Gegner bestimmen
     let opponentHtml='';
     if(md.isHome===true && md.away){
       opponentHtml=`<span class="vs-label">vs</span><span class="opp-name">${escapeHtml(md.away)}</span>`;
@@ -745,9 +688,7 @@ function renderMatchdayGrid(){
       const other=md.isHome?md.away:md.home;
       if(other) opponentHtml=`<span class="opp-name">${escapeHtml(other)}</span>`;
     }
-    
     const info=md.date?(md.date+(md.time?' · '+md.time:'')):(hasData?'Geplant':'Noch nicht geplant');
-    
     html+=`<div class="matchday-card ${hasData?'has-data':''}" data-md-index="${i}">
       <div class="md-top">
         <div class="md-number">SPIELTAG</div>
@@ -922,6 +863,9 @@ $('download-poster').addEventListener('click',async()=>{
 });
 
 async function init(){
+  // Alten PIN-Hash löschen, damit nur noch der feste PIN funktioniert
+  localStorage.removeItem(PIN_STORAGE_KEY);
+  
   months.forEach((m,i)=>$('month-select').add(new Option(m,i)));
   $('month-select').add(new Option('Gesamtübersicht','all'));
   for(let y=now.getFullYear()-5;y<=now.getFullYear()+10;y++)$('year-select').add(new Option(y,y));
