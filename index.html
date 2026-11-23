@@ -1,6 +1,108 @@
 <!doctype html>
 <html lang="de">
 <head>
+ <!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, push, remove, onValue }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ⬇️ Deine Firebase-Konfiguration hier eintragen
+  const firebaseConfig = {
+  apiKey: "AIzaSyBqmHK8_70xK1ID-CostqsI_7j07ZABGW8",
+  authDomain: "teamtrack-app-47a83.firebaseapp.com",
+  databaseURL: "https://teamtrack-app-47a83-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "teamtrack-app-47a83",
+  storageBucket: "teamtrack-app-47a83.firebasestorage.app",
+  messagingSenderId: "1085392137285",
+  appId: "1:1085392137285:web:ae7e58cad36613a1f5872c"
+};
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Firebase SDK – kompatibel mit deinem bestehenden dataSdk-Pattern
+  window.dataSdk = {
+
+    async init() {
+      try {
+        // Einmalig alle Daten laden
+        const snapshot = await get(ref(db, 'records'));
+        records = [];
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          Object.keys(data).forEach(key => {
+            records.push({ ...data[key], __backendId: key });
+          });
+        }
+
+        // Echtzeit-Listener: aktualisiert automatisch wenn sich Daten ändern
+        onValue(ref(db, 'records'), (snapshot) => {
+          records = [];
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            Object.keys(data).forEach(key => {
+              records.push({ ...data[key], __backendId: key });
+            });
+          }
+          // UI neu rendern wenn Daten sich ändern
+          if (ready) render();
+        });
+
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase init Fehler:', e);
+        return { isOk: false };
+      }
+    },
+
+    async create(record) {
+      try {
+        // push() generiert automatisch eine eindeutige ID
+        const newRef = push(ref(db, 'records'));
+        const { __backendId, ...cleanRecord } = record;
+        await set(newRef, cleanRecord);
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase create Fehler:', e);
+        return { isOk: false };
+      }
+    },
+
+    async update(record) {
+      try {
+        const { __backendId, ...cleanRecord } = record;
+        await set(ref(db, `records/${__backendId}`), cleanRecord);
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase update Fehler:', e);
+        return { isOk: false };
+      }
+    },
+
+    async delete(record) {
+      try {
+        await remove(ref(db, `records/${record.__backendId}`));
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase delete Fehler:', e);
+        return { isOk: false };
+      }
+    }
+  };
+
+  // Matchdays auch in Firebase speichern
+  window.firebaseMatchdays = {
+    async load() {
+      const snapshot = await get(ref(db, 'matchdays'));
+      if (snapshot.exists()) return snapshot.val();
+      return null;
+    },
+    async save(data) {
+      await set(ref(db, 'matchdays'), data);
+    }
+  };
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Spieler-Trainingsliste</title>
@@ -642,15 +744,32 @@ let currentMatchdayIndex=null;
 let matchdays=loadMatchdays();
 
 function emptyMatchday(i){return{matchday:i+1,date:'',time:'',venue:'',home:'',away:'',league:'STFV 1. KLASSE',isHome:true,homeLogo:'',awayLogo:'',nominations:[]}}
-function loadMatchdays(){
-  try{
-    const d=JSON.parse(localStorage.getItem(MATCHDAYS_KEY));
-    if(Array.isArray(d) && d.length===TOTAL_MATCHDAYS) return d;
-  }catch{}
-  const arr=[];for(let i=0;i<TOTAL_MATCHDAYS;i++)arr.push(emptyMatchday(i));
-  return arr;
+async function loadMatchdaysAsync() {
+    try {
+        if (window.firebaseMatchdays) {
+            const data = await window.firebaseMatchdays.load();
+            if (Array.isArray(data) && data.length === TOTAL_MATCHDAYS) {
+                matchdays = data;
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Firebase Matchdays Fehler, nutze localStorage:', e);
+    }
+    // Fallback auf localStorage
+    const d = JSON.parse(localStorage.getItem(MATCHDAYS_KEY) || 'null');
+    matchdays = (Array.isArray(d) && d.length === TOTAL_MATCHDAYS)
+        ? d
+        : Array.from({ length: TOTAL_MATCHDAYS }, (_, i) => emptyMatchday(i));
 }
-function saveMatchdays(){localStorage.setItem(MATCHDAYS_KEY,JSON.stringify(matchdays))}
+function saveMatchdays() {
+    // Lokal speichern
+    localStorage.setItem(MATCHDAYS_KEY, JSON.stringify(matchdays));
+    // Firebase speichern
+    if (window.firebaseMatchdays) {
+        window.firebaseMatchdays.save(matchdays).catch(console.error);
+    }
+}
 function currentMatchday(){return currentMatchdayIndex!==null?matchdays[currentMatchdayIndex]:null}
 
 $('tab-training').addEventListener('click',()=>{view='training';document.body.dataset.view='training';$('tab-training').classList.add('active');$('tab-kader').classList.remove('active');iconize()});
