@@ -9,6 +9,50 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Orbitron:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/lucide@0.577.0/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<!-- FIREBASE SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, update, remove, onValue, child }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, signInAnonymously, onAuthStateChanged }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBqmHK8_70xK1ID-CostqsI_7j07ZABGW8",
+    authDomain: "teamtrack-app-47a83.firebaseapp.com",
+    databaseURL: "https://teamtrack-app-47a83-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "teamtrack-app-47a83",
+    storageBucket: "teamtrack-app-47a83.firebasestorage.app",
+    messagingSenderId: "1085392137285",
+    appId: "1:1085392137285:web:ae7e58cad36613a1f5872c"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const auth = getAuth(app);
+
+  // Anonym einloggen damit Datenbankregeln greifen
+  signInAnonymously(auth).catch(console.error);
+
+  onAuthStateChanged(auth, user => {
+    if (user) {
+      console.log("Firebase Auth OK:", user.uid);
+      window._fbReady = true;
+      window._db = db;
+      window._ref = ref;
+      window._set = set;
+      window._get = get;
+      window._update = update;
+      window._remove = remove;
+      window._onValue = onValue;
+      window._child = child;
+      // App starten sobald Firebase bereit
+      if (typeof window.initApp === 'function') window.initApp();
+    }
+  });
+</script>
+
 <style>
 :root{--navy:#142b38;--muted:#71828a;--green:#21a67a;--line:#e5eceb;--bg:#f5f8f7;--white:#fff;--red:#c44d4d;--yellow:#b77712;--glass-bg:rgba(255,255,255,0.08);--glass-border:rgba(255,255,255,0.15);--glass-shadow:0 8px 32px rgba(0,0,0,0.3)}
 *{box-sizing:border-box}
@@ -19,6 +63,22 @@ button{cursor:pointer}
 button:disabled{opacity:.5;cursor:wait}
 [hidden]{display:none!important}
 :focus-visible{outline:3px solid #40bf98;outline-offset:3px}
+
+/* LOADING SCREEN */
+.fb-loading{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:18px;transition:opacity 0.5s ease}
+.fb-loading.hidden{opacity:0;pointer-events:none}
+.fb-loading-icon{width:64px;height:64px;border-radius:20px;background:rgba(255,255,255,0.08);display:grid;place-items:center;border:1px solid rgba(255,255,255,0.15)}
+.fb-loading-icon svg{width:32px;height:32px;color:#21a67a}
+.fb-loading h2{color:#fff;font-size:20px;font-weight:800;margin:0;letter-spacing:-0.5px}
+.fb-loading p{color:rgba(255,255,255,0.5);margin:0;font-size:13px}
+.fb-spinner{width:36px;height:36px;border:3px solid rgba(33,166,122,0.2);border-top-color:#21a67a;border-radius:50%;animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* SYNC INDICATOR */
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#21a67a;display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.sync-status{display:flex;align-items:center;font-size:11px;font-weight:700;color:#21a67a;background:rgba(33,166,122,0.1);border:1px solid rgba(33,166,122,0.3);padding:4px 10px;border-radius:20px}
+
 .shell{max-width:1500px;margin:auto;padding:32px clamp(16px,3vw,48px) 60px}
 .topline{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:27px}
 .brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:17px;letter-spacing:-.5px}
@@ -84,7 +144,6 @@ body[data-view="kader"] .kader-view{display:block}
 .detail-header .md-badge{background:linear-gradient(135deg,#21a67a 0%,#1a8a63 100%);color:#fff;padding:8px 16px;border-radius:10px;font-family:"Orbitron",sans-serif;font-size:13px;font-weight:800;letter-spacing:1px}
 .glass-card{background:var(--glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--glass-border);border-radius:16px;padding:24px;box-shadow:var(--glass-shadow);transition:all 0.3s ease}
 .kader-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px}
-.kader-form .fields{grid-template-columns:1fr 1fr;gap:16px}
 .kader-form label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:rgba(255,255,255,0.6);font-weight:700;margin-bottom:8px}
 .kader-form input,.kader-form select{width:100%;height:44px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:0 14px;color:#fff;font-size:14px;font-weight:600;transition:all 0.3s ease;font-family:"DM Sans",sans-serif}
 .kader-form input:focus,.kader-form select:focus{outline:none;background:rgba(255,255,255,0.1);border-color:#21a67a;box-shadow:0 0 0 3px rgba(33,166,122,0.2)}
@@ -145,7 +204,6 @@ body[data-view="kader"] .kader-view{display:block}
 .poster .p-players{display:grid;grid-template-columns:1fr 1fr;gap:0 32px;flex:1;min-height:0}
 .poster .p-col{display:flex;flex-direction:column;gap:10px;min-height:0;justify-content:flex-start}
 .poster .p-row{display:flex;align-items:center;gap:14px;padding:14px 20px;background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:12px;transition:all 0.3s ease;min-height:0}
-.poster .p-row:hover{background:rgba(255,255,255,0.08);border-color:rgba(33,166,122,0.3);transform:translateX(4px)}
 .poster .p-num{font-family:"Orbitron",sans-serif;font-weight:900;font-size:28px;color:#21a67a;min-width:42px;text-align:center;text-shadow:0 0 15px rgba(33,166,122,0.5)}
 .poster .p-name{font-weight:800;font-size:20px;text-transform:uppercase;letter-spacing:0.8px;color:#fff;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .poster[data-size="large"] .p-row{padding:18px 22px;gap:16px}
@@ -318,6 +376,16 @@ tbody tr:last-child td{border-bottom:0}
 </head>
 <body data-view="training">
 
+<!-- FIREBASE LOADING SCREEN -->
+<div class="fb-loading" id="fb-loading">
+  <div class="fb-loading-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+  </div>
+  <h2>TeamTrack</h2>
+  <p>Verbindung zu Firebase wird hergestellt…</p>
+  <div class="fb-spinner"></div>
+</div>
+
 <div class="shell">
   <!-- TOPLINE -->
   <div class="topline">
@@ -328,6 +396,11 @@ tbody tr:last-child td{border-bottom:0}
       Spieler-Trainingsliste
     </div>
     <div class="top-note">
+      <!-- SYNC STATUS -->
+      <div class="sync-status" id="sync-status">
+        <span class="sync-dot"></span>
+        Live
+      </div>
       <span id="lock-hint">Nicht gesperrt</span>
       <button class="lock-btn unlocked" id="lock-btn" onclick="openLockModal()">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -341,7 +414,7 @@ tbody tr:last-child td{border-bottom:0}
     <div>
       <p class="eyebrow">Trainingsmanagement</p>
       <h1>Spieler-<br>Trainingsliste</h1>
-      <p>Erfasse Trainings­teilnahmen, behalte den Überblick über Anwesenheiten und exportiere Berichte.</p>
+      <p>Erfasse Trainingsteilnahmen, behalte den Überblick über Anwesenheiten und exportiere Berichte.</p>
     </div>
     <div class="hero-mark">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v6a6 6 0 0 0 12 0V4"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
@@ -688,8 +761,8 @@ tbody tr:last-child td{border-bottom:0}
     <h2 id="status-modal-title">Status setzen</h2>
     <p id="status-modal-sub">Wähle den Trainingsstatus.</p>
     <div class="status-options">
-      <button class="status-option" onclick="setStatus('t')" style="background:#dcf7e9;border-color:#b5e7cd;color:#16845c">T</button>
-      <button class="status-option" onclick="setStatus('e')" style="background:#fff1d9;border-color:#f4dcad;color:#b77712">E</button>
+      <button class="status-option" onclick="setStatus('t')"  style="background:#dcf7e9;border-color:#b5e7cd;color:#16845c">T</button>
+      <button class="status-option" onclick="setStatus('e')"  style="background:#fff1d9;border-color:#f4dcad;color:#b77712">E</button>
       <button class="status-option" onclick="setStatus('et')" style="background:#e8eafd;border-color:#d1d4f5;color:#6267ba">ET</button>
       <button class="status-option" onclick="setStatus('none')" style="background:#fdecec;border-color:#f5c6c6;color:#c44d4d">–</button>
     </div>
@@ -784,60 +857,199 @@ tbody tr:last-child td{border-bottom:0}
     </div>
   </div>
 </div>
-<script>
-// ── STATE ──────────────────────────────────────────────────────────────────
+<script type="module">
+// ── FIREBASE IMPORTS ────────────────────────────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, remove, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqmHK8_70xK1ID-CostqsI_7j07ZABGW8",
+  authDomain: "teamtrack-app-47a83.firebaseapp.com",
+  databaseURL: "https://teamtrack-app-47a83-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "teamtrack-app-47a83",
+  storageBucket: "teamtrack-app-47a83.firebasestorage.app",
+  messagingSenderId: "1085392137285",
+  appId: "1:1085392137285:web:ae7e58cad36613a1f5872c"
+};
+
+const app  = initializeApp(firebaseConfig);
+const db   = getDatabase(app);
+const auth = getAuth(app);
+
+// ── STATE ───────────────────────────────────────────────────────────────────
 let players = [], days = [], locked = false, lockPin = '';
 let editingId = null, statusCtx = null;
 let matchdays = [], currentMatchdayIdx = null;
 let homeLogo = null, awayLogo = null;
 
-const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const MONTHS = ['Januar','Februar','März','April','Mai','Juni','Juli',
+                'August','September','Oktober','November','Dezember'];
 
-// ── PERSIST ───────────────────────────────────────────────────────────────
-function save() {
-  localStorage.setItem('tl_players', JSON.stringify(players));
-  localStorage.setItem('tl_days', JSON.stringify(days));
-  localStorage.setItem('tl_locked', JSON.stringify(locked));
-  localStorage.setItem('tl_pin', lockPin);
-  localStorage.setItem('tl_matchdays', JSON.stringify(matchdays));
-}
-function load() {
-  try { players = JSON.parse(localStorage.getItem('tl_players')) || []; } catch { players = []; }
-  try { days = JSON.parse(localStorage.getItem('tl_days')) || []; } catch { days = []; }
-  try { locked = JSON.parse(localStorage.getItem('tl_locked')) || false; } catch { locked = false; }
-  lockPin = localStorage.getItem('tl_pin') || '';
-  try { matchdays = JSON.parse(localStorage.getItem('tl_matchdays')) || []; } catch { matchdays = []; }
+// ── FIREBASE REFS ───────────────────────────────────────────────────────────
+const R = {
+  players:   () => ref(db, 'teamtrack/players'),
+  days:      () => ref(db, 'teamtrack/days'),
+  settings:  () => ref(db, 'teamtrack/settings'),
+  matchdays: () => ref(db, 'teamtrack/matchdays'),
+  player:    (id) => ref(db, `teamtrack/players/${id}`),
+  matchday:  (i)  => ref(db, `teamtrack/matchdays/${i}`),
+};
+
+// ── SYNC STATUS ─────────────────────────────────────────────────────────────
+function setSyncStatus(state) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  if (state === 'ok') {
+    el.innerHTML = '<span class="sync-dot"></span>Live';
+    el.style.color = '#21a67a';
+    el.style.borderColor = 'rgba(33,166,122,0.3)';
+    el.style.background = 'rgba(33,166,122,0.1)';
+  } else if (state === 'saving') {
+    el.innerHTML = '<span class="sync-dot" style="background:#b77712"></span>Speichert…';
+    el.style.color = '#b77712';
+    el.style.borderColor = 'rgba(183,119,18,0.3)';
+    el.style.background = 'rgba(183,119,18,0.1)';
+  } else {
+    el.innerHTML = '<span class="sync-dot" style="background:#c44d4d"></span>Offline';
+    el.style.color = '#c44d4d';
+    el.style.borderColor = 'rgba(196,77,77,0.3)';
+    el.style.background = 'rgba(196,77,77,0.1)';
+  }
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  load();
+// ── FIREBASE SAVE HELPERS ───────────────────────────────────────────────────
+async function fbSavePlayers() {
+  setSyncStatus('saving');
+  try {
+    const obj = {};
+    players.forEach(p => { obj[p.id] = p; });
+    await set(R.players(), obj);
+    setSyncStatus('ok');
+  } catch(e) { console.error(e); setSyncStatus('error'); }
+}
+
+async function fbSaveDays() {
+  setSyncStatus('saving');
+  try {
+    await set(R.days(), days.length ? days : []);
+    setSyncStatus('ok');
+  } catch(e) { console.error(e); setSyncStatus('error'); }
+}
+
+async function fbSaveSettings() {
+  setSyncStatus('saving');
+  try {
+    await set(R.settings(), { locked, lockPin });
+    setSyncStatus('ok');
+  } catch(e) { console.error(e); setSyncStatus('error'); }
+}
+
+async function fbSaveMatchdays() {
+  setSyncStatus('saving');
+  try {
+    await set(R.matchdays(), matchdays.length ? matchdays : []);
+    setSyncStatus('ok');
+  } catch(e) { console.error(e); setSyncStatus('error'); }
+}
+
+// ── FIREBASE REALTIME LISTENERS ─────────────────────────────────────────────
+function startListeners() {
+  // Players
+  onValue(R.players(), snap => {
+    const data = snap.val();
+    if (data) {
+      players = Object.values(data);
+    } else {
+      players = [];
+    }
+    renderAll();
+    renderMatchdayOverview();
+  });
+
+  // Days
+  onValue(R.days(), snap => {
+    const data = snap.val();
+    days = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+    renderAll();
+  });
+
+  // Settings
+  onValue(R.settings(), snap => {
+    const data = snap.val();
+    if (data) {
+      locked  = data.locked  ?? false;
+      lockPin = data.lockPin ?? '';
+      updateLockUI();
+    }
+  });
+
+  // Matchdays
+  onValue(R.matchdays(), snap => {
+    const data = snap.val();
+    matchdays = data ? (Array.isArray(data) ? data : Object.values(data)) : [];
+    renderMatchdayOverview();
+    // Falls Detail offen ist, neu rendern
+    if (currentMatchdayIdx !== null && matchdays[currentMatchdayIdx]) {
+      renderNomList(matchdays[currentMatchdayIdx]);
+    }
+  });
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────
+window.initApp = function() {
+  // Loading Screen ausblenden
+  const loader = document.getElementById('fb-loading');
+  if (loader) {
+    loader.classList.add('hidden');
+    setTimeout(() => loader.style.display = 'none', 500);
+  }
+
+  // Datum & Jahr initialisieren
   const now = new Date();
-  const ms = document.getElementById('month-select');
-  const ys = document.getElementById('year-select');
+  const ms  = document.getElementById('month-select');
+  const ys  = document.getElementById('year-select');
   const years = [];
   for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) years.push(y);
-  years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; ys.appendChild(o); });
+  years.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y; ys.appendChild(o);
+  });
   ms.value = now.getMonth();
   ys.value = now.getFullYear();
   document.getElementById('date-input').value = now.toISOString().slice(0, 10);
+
   updateLockUI();
-  renderAll();
-  renderMatchdayOverview();
-  lucide.createIcons();
+  setSyncStatus('ok');
+
+  // Firebase Listeners starten
+  startListeners();
+
+  if (typeof lucide !== 'undefined') lucide.createIcons();
+};
+
+// Auth
+signInAnonymously(auth).catch(console.error);
+onAuthStateChanged(auth, user => {
+  if (user && typeof window.initApp === 'function') {
+    window.initApp();
+  }
 });
 
-// ── VIEW SWITCH ────────────────────────────────────────────────────────────
-function switchView(v) {
+// ── VIEW SWITCH ─────────────────────────────────────────────────────────────
+window.switchView = function(v) {
   document.body.dataset.view = v;
   document.getElementById('tab-training').classList.toggle('active', v === 'training');
   document.getElementById('tab-kader').classList.toggle('active', v === 'kader');
-}
+};
 
-// ── LOCK ──────────────────────────────────────────────────────────────────
-function updateLockUI() {
-  const btn = document.getElementById('lock-btn');
+// ── LOCK ────────────────────────────────────────────────────────────────────
+window.updateLockUI = function() {
+  const btn  = document.getElementById('lock-btn');
   const hint = document.getElementById('lock-hint');
+  if (!btn) return;
   if (locked) {
     btn.className = 'lock-btn locked';
     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Entsperren`;
@@ -847,28 +1059,30 @@ function updateLockUI() {
     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Sperren`;
     hint.textContent = 'Nicht gesperrt';
   }
-}
-function openLockModal() {
-  const inp = document.getElementById('pin-input');
+};
+
+window.openLockModal = function() {
+  const inp   = document.getElementById('pin-input');
   const title = document.getElementById('lock-modal-title');
-  const desc = document.getElementById('lock-modal-desc');
-  const btn = document.getElementById('lock-confirm-btn');
+  const desc  = document.getElementById('lock-modal-desc');
+  const btn   = document.getElementById('lock-confirm-btn');
   inp.value = '';
   inp.classList.remove('error');
   document.getElementById('pin-hint').textContent = '';
   if (locked) {
     title.textContent = 'App entsperren';
-    desc.textContent = 'PIN eingeben zum Entsperren.';
-    btn.textContent = 'Entsperren';
+    desc.textContent  = 'PIN eingeben zum Entsperren.';
+    btn.textContent   = 'Entsperren';
   } else {
     title.textContent = 'App sperren';
-    desc.textContent = lockPin ? 'PIN bestätigen.' : 'Neuen PIN festlegen (mind. 4 Ziffern).';
-    btn.textContent = 'Sperren';
+    desc.textContent  = lockPin ? 'PIN bestätigen.' : 'Neuen PIN festlegen (mind. 4 Ziffern).';
+    btn.textContent   = 'Sperren';
   }
   openModal('lock-modal');
   setTimeout(() => inp.focus(), 100);
-}
-function confirmLock() {
+};
+
+window.confirmLock = async function() {
   const inp = document.getElementById('pin-input');
   const pin = inp.value.trim();
   if (pin.length < 4) { shakePin(); return; }
@@ -878,27 +1092,29 @@ function confirmLock() {
   } else {
     if (lockPin && pin !== lockPin) { shakePin('Falscher PIN'); return; }
     lockPin = pin;
-    locked = true;
+    locked  = true;
   }
-  save();
+  await fbSaveSettings();
   updateLockUI();
   closeModal('lock-modal');
-}
-function shakePin(msg = '') {
+};
+
+function shakePin(m = '') {
   const inp = document.getElementById('pin-input');
   inp.classList.remove('error');
   void inp.offsetWidth;
   inp.classList.add('error');
-  if (msg) document.getElementById('pin-hint').textContent = msg;
+  if (m) document.getElementById('pin-hint').textContent = m;
 }
 
-// ── HELPERS ───────────────────────────────────────────────────────────────
+// ── HELPERS ─────────────────────────────────────────────────────────────────
 function getPeriod() {
   return {
     month: parseInt(document.getElementById('month-select').value),
-    year: parseInt(document.getElementById('year-select').value)
+    year:  parseInt(document.getElementById('year-select').value)
   };
 }
+
 function daysInPeriod() {
   const { month, year } = getPeriod();
   return days.filter(d => {
@@ -906,44 +1122,51 @@ function daysInPeriod() {
     return dt.getMonth() === month && dt.getFullYear() === year;
   }).sort();
 }
+
 function fmt(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
 }
+
 function fmtFull(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('de-DE', { weekday: 'short' });
 }
+
 function rateColor(r) {
   if (r >= 80) return '#21a67a';
   if (r >= 60) return '#b77712';
   return '#c44d4d';
 }
+
 function msg(txt, ok = false) {
   const el = document.getElementById('msg');
   el.textContent = txt;
-  el.className = 'message' + (ok ? ' ok' : '');
+  el.className   = 'message' + (ok ? ' ok' : '');
   clearTimeout(msg._t);
   msg._t = setTimeout(() => el.textContent = '', 3000);
 }
+
 function guardLock() {
   if (locked) { msg('App ist gesperrt – bitte entsperren.'); return true; }
   return false;
 }
 
-// ── RENDER ALL ─────────────────────────────────────────────────────────────
-function renderAll() {
+// ── RENDER ALL ───────────────────────────────────────────────────────────────
+window.renderAll = function() {
   renderOverview();
   renderPlayers();
   renderStats();
-}
+};
 
-// ── STATS ──────────────────────────────────────────────────────────────────
+// ── STATS ────────────────────────────────────────────────────────────────────
 function renderStats() {
   const pd = daysInPeriod();
-  document.getElementById('st-players').textContent = players.length;
+  document.getElementById('st-players').textContent  = players.length;
   document.getElementById('st-sessions').textContent = pd.length;
-  if (!players.length || !pd.length) { document.getElementById('st-avg').textContent = '–'; return; }
+  if (!players.length || !pd.length) {
+    document.getElementById('st-avg').textContent = '–'; return;
+  }
   let total = 0, count = 0;
   players.forEach(p => {
     pd.forEach(d => {
@@ -952,79 +1175,118 @@ function renderStats() {
       count++;
     });
   });
-  document.getElementById('st-avg').textContent = count ? Math.round(total / count * 100) + '%' : '–';
+  document.getElementById('st-avg').textContent =
+    count ? Math.round(total / count * 100) + '%' : '–';
 }
 
-// ── OVERVIEW TABLE ─────────────────────────────────────────────────────────
+// ── OVERVIEW TABLE ───────────────────────────────────────────────────────────
 function renderOverview() {
   const pd = daysInPeriod();
   const { month, year } = getPeriod();
   document.getElementById('overview-sub').textContent =
     `${MONTHS[month]} ${year} · ${pd.length} Training${pd.length !== 1 ? 's' : ''}`;
+
   const thead = document.getElementById('overview-head');
   const tbody = document.getElementById('overview-body');
-  const foot = document.getElementById('overview-foot');
+  const foot  = document.getElementById('overview-foot');
+
   if (!players.length) {
-    thead.innerHTML = ''; tbody.innerHTML = `<tr><td colspan="99" class="empty"><div><strong>Keine Spieler</strong><span>Füge Spieler über die Spielerliste hinzu.</span></div></td></tr>`; foot.textContent = ''; return;
+    thead.innerHTML = '';
+    tbody.innerHTML = `<tr><td colspan="99" class="empty"><div><strong>Keine Spieler</strong><span>Füge Spieler über die Spielerliste hinzu.</span></div></td></tr>`;
+    foot.textContent = ''; return;
   }
   if (!pd.length) {
-    thead.innerHTML = ''; tbody.innerHTML = `<tr><td colspan="99" class="empty"><div><strong>Keine Trainings</strong><span>Füge Trainingstage über die Toolbar hinzu.</span></div></td></tr>`; foot.textContent = ''; return;
+    thead.innerHTML = '';
+    tbody.innerHTML = `<tr><td colspan="99" class="empty"><div><strong>Keine Trainings</strong><span>Füge Trainingstage über die Toolbar hinzu.</span></div></td></tr>`;
+    foot.textContent = ''; return;
   }
-  // head
+
+  // Head
   let hRow = '<tr><th>Name</th>';
   pd.forEach(d => {
-    hRow += `<th class="day-col day-head"><span class="date-top">${fmt(d)}</span><span class="date-bottom" style="color:#9aacad">${fmtFull(d)}</span><button class="remove-day" onclick="removeDay('${d}')" title="Tag entfernen"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button></th>`;
+    hRow += `<th class="day-col day-head">
+      <span class="date-top">${fmt(d)}</span>
+      <span class="date-bottom" style="color:#9aacad">${fmtFull(d)}</span>
+      <button class="remove-day" onclick="removeDay('${d}')" title="Tag entfernen">
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'>
+          <line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/>
+        </svg>
+      </button>
+    </th>`;
   });
   hRow += '<th class="total-col">T</th><th class="rate-col">Quote</th></tr>';
   thead.innerHTML = hRow;
-  // body
+
+  // Body
   let rows = '', totT = 0, totAll = 0;
   const sorted = [...players].sort((a, b) => a.nachname.localeCompare(b.nachname));
   sorted.forEach(p => {
-    let pT = 0;
-    let cells = '';
+    let pT = 0, cells = '';
     pd.forEach(d => {
-      const s = (p.attendance || {})[d] || '';
+      const s     = (p.attendance || {})[d] || '';
       const label = s === 't' ? 'T' : s === 'e' ? 'E' : s === 'et' ? 'ET' : '–';
-      const cls = s || 'none';
+      const cls   = s || 'none';
       if (s === 't' || s === 'et') pT++;
-      cells += `<td class="day-col"><button class="status-btn ${cls}" onclick="openStatusModal('${p.id}','${d}')">${label}</button></td>`;
+      cells += `<td class="day-col">
+        <button class="status-btn ${cls}" onclick="openStatusModal('${p.id}','${d}')">${label}</button>
+      </td>`;
     });
     const rate = pd.length ? Math.round(pT / pd.length * 100) : 0;
-    const col = rateColor(rate);
+    const col  = rateColor(rate);
     totT += pT; totAll += pd.length;
     rows += `<tr>
       <td class="name-cell" onclick="openPlayerModal('${p.id}')">${p.vorname} ${p.nachname}</td>
       ${cells}
       <td class="total-col"><span class="total-num">${pT}</span></td>
-      <td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${col}"></div></div><span class="rate-value" style="color:${col}">${rate}%</span></div></td>
+      <td class="rate-col">
+        <div class="rate-wrap">
+          <div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${col}"></div></div>
+          <span class="rate-value" style="color:${col}">${rate}%</span>
+        </div>
+      </td>
     </tr>`;
   });
   tbody.innerHTML = rows;
   const avgRate = totAll ? Math.round(totT / totAll * 100) : 0;
-  foot.textContent = `${players.length} Spieler · ${pd.length} Trainings · Ø Anwesenheit: ${avgRate}%`;
+  foot.textContent =
+    `${players.length} Spieler · ${pd.length} Trainings · Ø Anwesenheit: ${avgRate}%`;
 }
 
-// ── PLAYER TABLE ───────────────────────────────────────────────────────────
+// ── PLAYER TABLE ─────────────────────────────────────────────────────────────
 function renderPlayers() {
   const pd = daysInPeriod();
   const { month, year } = getPeriod();
   document.getElementById('period-head').textContent = `${MONTHS[month]} ${year}`;
   const tbody = document.getElementById('player-body');
-  const foot = document.getElementById('panel-foot');
+  const foot  = document.getElementById('panel-foot');
+
   if (!players.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><strong>Noch keine Spieler</strong>Klicke auf "+ Spieler" um loszulegen.</td></tr>`;
-    foot.textContent = '';
-    return;
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+      <strong>Noch keine Spieler</strong>Klicke auf "+ Spieler" um loszulegen.</td></tr>`;
+    foot.textContent = ''; return;
   }
+
   const sorted = [...players].sort((a, b) => a.nachname.localeCompare(b.nachname));
   let rows = '';
   sorted.forEach(p => {
     let pT = 0;
-    pd.forEach(d => { const s = (p.attendance || {})[d]; if (s === 't' || s === 'et') pT++; });
-    const rate = pd.length ? Math.round(pT / pd.length * 100) : null;
-    const col = rate !== null ? rateColor(rate) : '#9aacad';
-    const rateDisp = rate !== null ? `<div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${col}"></div></div><span class="rate-value" style="color:${col}">${rate}%</span></div>` : '<span style="color:#b4c0be">–</span>';
+    pd.forEach(d => {
+      const s = (p.attendance || {})[d];
+      if (s === 't' || s === 'et') pT++;
+    });
+    const rate    = pd.length ? Math.round(pT / pd.length * 100) : null;
+    const col     = rate !== null ? rateColor(rate) : '#9aacad';
+    const rateDisp = rate !== null
+      ? `<div class="rate-wrap">
+           <div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${col}"></div></div>
+           <span class="rate-value" style="color:${col}">${rate}%</span>
+         </div>`
+      : '<span style="color:#b4c0be">–</span>';
+
     rows += `<tr>
       <td class="first-cell" onclick="openPlayerModal('${p.id}')">${p.vorname} ${p.nachname}</td>
       <td style="color:var(--muted);font-size:12px">${MONTHS[month]} ${year}</td>
@@ -1032,7 +1294,10 @@ function renderPlayers() {
       <td class="rate-col">${rateDisp}</td>
       <td class="actions-col">
         <button class="icon-btn" onclick="openEditModal('${p.id}')" title="Bearbeiten">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
         </button>
       </td>
     </tr>`;
@@ -1041,160 +1306,202 @@ function renderPlayers() {
   foot.textContent = `${players.length} Spieler · ${pd.length} Trainings im Zeitraum`;
 }
 
-// ── ADD DAY ────────────────────────────────────────────────────────────────
-function addDay() {
+// ── ADD DAY ──────────────────────────────────────────────────────────────────
+window.addDay = async function() {
   if (guardLock()) return;
   const v = document.getElementById('date-input').value;
   if (!v) { msg('Bitte ein Datum wählen.'); return; }
   if (days.includes(v)) { msg('Dieser Tag ist bereits vorhanden.'); return; }
   days.push(v);
-  save(); renderAll(); msg('Trainingstag hinzugefügt.', true);
-}
-function removeDay(d) {
+  await fbSaveDays();
+  msg('Trainingstag hinzugefügt.', true);
+};
+
+window.removeDay = async function(d) {
   if (guardLock()) return;
   if (!confirm(`Tag ${fmt(d)} entfernen? Alle Einträge für diesen Tag gehen verloren.`)) return;
   days = days.filter(x => x !== d);
-  save(); renderAll(); msg('Tag entfernt.', true);
-}
+  await fbSaveDays();
+  msg('Tag entfernt.', true);
+};
 
-// ── ADD PLAYER ─────────────────────────────────────────────────────────────
-function openAddModal() {
+// ── ADD PLAYER ───────────────────────────────────────────────────────────────
+window.openAddModal = function() {
   if (guardLock()) return;
-  document.getElementById('inp-vorname').value = '';
+  document.getElementById('inp-vorname').value  = '';
   document.getElementById('inp-nachname').value = '';
   openModal('add-modal');
   setTimeout(() => document.getElementById('inp-vorname').focus(), 100);
-}
-function addPlayer() {
+};
+
+window.addPlayer = async function() {
   const v = document.getElementById('inp-vorname').value.trim();
   const n = document.getElementById('inp-nachname').value.trim();
   if (!v || !n) { msg('Vor- und Nachname erforderlich.'); return; }
-  players.push({ id: Date.now().toString(), vorname: v, nachname: n, attendance: {} });
-  save(); closeModal('add-modal'); renderAll(); msg('Spieler hinzugefügt.', true);
-}
+  players.push({
+    id: Date.now().toString(),
+    vorname: v,
+    nachname: n,
+    attendance: {}
+  });
+  await fbSavePlayers();
+  closeModal('add-modal');
+  msg('Spieler hinzugefügt.', true);
+};
 
-// ── EDIT / DELETE PLAYER ───────────────────────────────────────────────────
-function openEditModal(id) {
+// ── EDIT / DELETE PLAYER ──────────────────────────────────────────────────────
+window.openEditModal = function(id) {
   if (guardLock()) return;
   const p = players.find(x => x.id === id);
   if (!p) return;
   editingId = id;
-  document.getElementById('edit-vorname').value = p.vorname;
+  document.getElementById('edit-vorname').value  = p.vorname;
   document.getElementById('edit-nachname').value = p.nachname;
   openModal('edit-modal');
   setTimeout(() => document.getElementById('edit-vorname').focus(), 100);
-}
-function saveEdit() {
+};
+
+window.saveEdit = async function() {
   const p = players.find(x => x.id === editingId);
   if (!p) return;
   const v = document.getElementById('edit-vorname').value.trim();
   const n = document.getElementById('edit-nachname').value.trim();
   if (!v || !n) { msg('Vor- und Nachname erforderlich.'); return; }
-  p.vorname = v; p.nachname = n;
-  save(); closeModal('edit-modal'); renderAll(); msg('Spieler gespeichert.', true);
-}
-function deletePlayer() {
+  p.vorname  = v;
+  p.nachname = n;
+  await fbSavePlayers();
+  closeModal('edit-modal');
+  msg('Spieler gespeichert.', true);
+};
+
+window.deletePlayer = async function() {
   if (!confirm('Spieler wirklich löschen?')) return;
   players = players.filter(x => x.id !== editingId);
-  save(); closeModal('edit-modal'); renderAll(); msg('Spieler gelöscht.', true);
-}
+  await fbSavePlayers();
+  closeModal('edit-modal');
+  msg('Spieler gelöscht.', true);
+};
 
-// ── STATUS ─────────────────────────────────────────────────────────────────
-function openStatusModal(pid, day) {
+// ── STATUS ────────────────────────────────────────────────────────────────────
+window.openStatusModal = function(pid, day) {
   if (guardLock()) return;
   statusCtx = { pid, day };
   const p = players.find(x => x.id === pid);
-  document.getElementById('status-modal-title').textContent = p ? `${p.vorname} ${p.nachname}` : 'Status';
-  document.getElementById('status-modal-sub').textContent = `Training vom ${fmt(day)}`;
+  document.getElementById('status-modal-title').textContent =
+    p ? `${p.vorname} ${p.nachname}` : 'Status';
+  document.getElementById('status-modal-sub').textContent =
+    `Training vom ${fmt(day)}`;
   openModal('status-modal');
-}
-function setStatus(s) {
+};
+
+window.setStatus = async function(s) {
   if (!statusCtx) return;
   const p = players.find(x => x.id === statusCtx.pid);
   if (!p) return;
   if (!p.attendance) p.attendance = {};
   p.attendance[statusCtx.day] = s;
-  save(); closeModal('status-modal'); renderAll();
-}
+  await fbSavePlayers();
+  closeModal('status-modal');
+};
 
-// ── MODAL HELPERS ──────────────────────────────────────────────────────────
-function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { document.querySelectorAll('.modal-backdrop.open,.player-modal-backdrop.open').forEach(m => m.classList.remove('open')); } });
-document.querySelectorAll('.modal-backdrop').forEach(bd => bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); }));
+// ── MODAL HELPERS ─────────────────────────────────────────────────────────────
+window.openModal  = function(id) { document.getElementById(id).classList.add('open'); };
+window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
 
-// ── PLAYER MODAL ───────────────────────────────────────────────────────────
-function openPlayerModal(id) {
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-backdrop.open,.player-modal-backdrop.open')
+      .forEach(m => m.classList.remove('open'));
+  }
+});
+
+document.querySelectorAll('.modal-backdrop').forEach(bd =>
+  bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); })
+);
+
+// ── PLAYER MODAL ──────────────────────────────────────────────────────────────
+window.openPlayerModal = function(id) {
   const p = players.find(x => x.id === id);
   if (!p) return;
-  document.getElementById('modal-player-name').textContent = p.nachname.toUpperCase();
+  document.getElementById('modal-player-name').textContent    = p.nachname.toUpperCase();
   document.getElementById('modal-player-vorname').textContent = p.vorname;
-  document.getElementById('modal-player-id').textContent = '#' + (players.indexOf(p) + 1);
-  // All-time stats
+  document.getElementById('modal-player-id').textContent      = '#' + (players.indexOf(p) + 1);
+
   const allDays = [...days].sort();
-  let t = 0, e = 0, et = 0, none = 0, streak = 0, curStreak = 0;
+  let t = 0, e = 0, et = 0, none = 0, curStreak = 0;
   allDays.forEach(d => {
     const s = (p.attendance || {})[d];
-    if (s === 't') t++;
-    else if (s === 'e') e++;
+    if      (s === 't')  t++;
+    else if (s === 'e')  e++;
     else if (s === 'et') { t++; et++; }
-    else none++;
+    else                 none++;
   });
-  // streak
+
+  // Streak berechnen
   const revDays = [...allDays].reverse();
   for (const d of revDays) {
     const s = (p.attendance || {})[d];
     if (s === 't' || s === 'et') curStreak++;
     else break;
   }
-  streak = curStreak;
-  const total = allDays.length;
+
+  const total    = allDays.length;
   const attended = t;
-  const rate = total ? Math.round(attended / total * 100) : 0;
-  const col = rateColor(rate);
-  document.getElementById('modal-rate-val').textContent = rate + '%';
-  document.getElementById('modal-t-val').textContent = attended;
-  document.getElementById('modal-miss-val').textContent = none;
-  document.getElementById('modal-e-val').textContent = e + et;
-  document.getElementById('modal-total-val').textContent = total;
-  document.getElementById('modal-streak-val').textContent = streak;
-  document.getElementById('modal-rate-big').textContent = rate + '%';
-  document.getElementById('modal-rate-big').style.color = col;
+  const rate     = total ? Math.round(attended / total * 100) : 0;
+  const col      = rateColor(rate);
+
+  document.getElementById('modal-rate-val').textContent    = rate + '%';
+  document.getElementById('modal-t-val').textContent       = attended;
+  document.getElementById('modal-miss-val').textContent    = none;
+  document.getElementById('modal-e-val').textContent       = e + et;
+  document.getElementById('modal-total-val').textContent   = total;
+  document.getElementById('modal-streak-val').textContent  = curStreak;
+  document.getElementById('modal-rate-big').textContent    = rate + '%';
+  document.getElementById('modal-rate-big').style.color    = col;
+
   const bar = document.getElementById('modal-rate-bar');
   bar.style.width = '0%';
   setTimeout(() => { bar.style.background = col; bar.style.width = rate + '%'; }, 50);
-  // monthly
-  const grid = document.getElementById('modal-monthly-grid');
+
+  // Monthly grid
+  const grid     = document.getElementById('modal-monthly-grid');
   const monthMap = {};
   allDays.forEach(d => {
-    const dt = new Date(d);
+    const dt  = new Date(d);
     const key = `${dt.getFullYear()}-${dt.getMonth()}`;
     if (!monthMap[key]) monthMap[key] = { t: 0, total: 0, year: dt.getFullYear(), month: dt.getMonth() };
     const s = (p.attendance || {})[d];
     if (s === 't' || s === 'et') monthMap[key].t++;
     monthMap[key].total++;
   });
-  const keys = Object.keys(monthMap).sort();
-  if (!keys.length) { grid.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;grid-column:1/-1">Noch keine Daten</div>'; }
-  else {
-    grid.innerHTML = keys.map(k => {
-      const m = monthMap[k];
-      const r = m.total ? Math.round(m.t / m.total * 100) : 0;
-      const c = rateColor(r);
-      return `<div class="player-month-card has-data">
-        <div class="month-name">${MONTHS[m.month].slice(0,3)} ${m.year}</div>
-        <div class="month-stats" style="color:${c}">${m.t}/${m.total}</div>
-        <div class="month-rate" style="color:${c}">${r}%</div>
-      </div>`;
-    }).join('');
-  }
-  document.getElementById('player-modal').classList.add('open');
-}
-function closePlayerModal() { document.getElementById('player-modal').classList.remove('open'); }
-document.getElementById('player-modal').addEventListener('click', e => { if (e.target === document.getElementById('player-modal')) closePlayerModal(); });
 
-// ── CSV EXPORT ─────────────────────────────────────────────────────────────
-function exportCSV() {
+  const keys = Object.keys(monthMap).sort();
+  grid.innerHTML = !keys.length
+    ? '<div style="color:rgba(255,255,255,0.4);font-size:13px;grid-column:1/-1">Noch keine Daten</div>'
+    : keys.map(k => {
+        const m = monthMap[k];
+        const r = m.total ? Math.round(m.t / m.total * 100) : 0;
+        const c = rateColor(r);
+        return `<div class="player-month-card has-data">
+          <div class="month-name">${MONTHS[m.month].slice(0,3)} ${m.year}</div>
+          <div class="month-stats" style="color:${c}">${m.t}/${m.total}</div>
+          <div class="month-rate" style="color:${c}">${r}%</div>
+        </div>`;
+      }).join('');
+
+  document.getElementById('player-modal').classList.add('open');
+};
+
+window.closePlayerModal = function() {
+  document.getElementById('player-modal').classList.remove('open');
+};
+
+document.getElementById('player-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('player-modal')) closePlayerModal();
+});
+
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+window.exportCSV = function() {
   const pd = daysInPeriod();
   const { month, year } = getPeriod();
   if (!players.length) { msg('Keine Spieler vorhanden.'); return; }
@@ -1202,199 +1509,266 @@ function exportCSV() {
   const sorted = [...players].sort((a, b) => a.nachname.localeCompare(b.nachname));
   sorted.forEach(p => {
     let pT = 0;
-    const cells = pd.map(d => { const s = (p.attendance || {})[d] || ''; if (s === 't' || s === 'et') pT++; return s || '-'; });
+    const cells = pd.map(d => {
+      const s = (p.attendance || {})[d] || '';
+      if (s === 't' || s === 'et') pT++;
+      return s || '-';
+    });
     const rate = pd.length ? Math.round(pT / pd.length * 100) : 0;
     csv += `"${p.nachname}, ${p.vorname}",${cells.join(',')},${pT},${rate}%\n`;
   });
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `Training_${MONTHS[month]}_${year}.csv`; a.click();
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `Training_${MONTHS[month]}_${year}.csv`;
+  a.click();
   msg('CSV exportiert.', true);
-}
+};
 
-// ── MATCHDAY ───────────────────────────────────────────────────────────────
-function renderMatchdayOverview() {
+// ── MATCHDAY ──────────────────────────────────────────────────────────────────
+window.renderMatchdayOverview = function() {
   const grid = document.getElementById('matchday-grid');
-  document.getElementById('md-total').textContent = matchdays.length;
-  document.getElementById('md-configured').textContent = matchdays.filter(m => m.opponent || m.date).length;
+  document.getElementById('md-total').textContent       = matchdays.length;
+  document.getElementById('md-configured').textContent  =
+    matchdays.filter(m => m.opponent || m.date).length;
+
   if (!matchdays.length) {
     grid.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:14px;padding:20px">Noch keine Spieltage. Füge einen hinzu!</div>';
     return;
   }
+
   grid.innerHTML = matchdays.map((m, i) => {
     const locLabel = m.location === 'home' ? 'HEIM' : m.location === 'away' ? 'AUSW' : '–';
-    const locCls = m.location === 'home' ? 'home' : m.location === 'away' ? 'away' : 'none';
+    const locCls   = m.location === 'home' ? 'home' : m.location === 'away' ? 'away' : 'none';
     const nominated = (m.nominated || []).length;
-    const hasData = m.opponent || m.date;
+    const hasData   = m.opponent || m.date;
     return `<div class="matchday-card ${hasData ? 'has-data' : ''}" onclick="openMatchday(${i})">
       <div class="md-top">
         <span class="md-number">ST ${i + 1}</span>
         <span class="md-location ${locCls}">${locLabel}</span>
       </div>
       <div class="md-title">${i + 1}</div>
-      <div class="md-opponent">${m.opponent ? `<span class="vs-label">vs</span><span class="opp-name">${m.opponent}</span>` : '<span style="color:rgba(255,255,255,0.3)">Kein Gegner</span>'}</div>
+      <div class="md-opponent">${m.opponent
+        ? `<span class="vs-label">vs</span><span class="opp-name">${m.opponent}</span>`
+        : '<span style="color:rgba(255,255,255,0.3)">Kein Gegner</span>'}</div>
       <div class="md-info">${m.date ? new Date(m.date).toLocaleDateString('de-DE') : ''}${m.date && m.time ? ' · ' : ''}${m.time || ''}</div>
       <div class="md-players"><strong>${nominated}</strong> Spieler nominiert</div>
     </div>`;
   }).join('');
-}
-function addMatchday() {
+};
+
+window.addMatchday = async function() {
   if (guardLock()) return;
-  matchdays.push({ opponent: '', date: '', time: '15:00', location: 'home', league: '', nominated: [], homeLogo: null, awayLogo: null });
-  save();
+  matchdays.push({
+    opponent: '', date: '', time: '15:00',
+    location: 'home', league: '',
+    nominated: [], homeLogo: null, awayLogo: null
+  });
+  await fbSaveMatchdays();
   openMatchday(matchdays.length - 1);
-}
-function openMatchday(i) {
+};
+
+window.openMatchday = function(i) {
   currentMatchdayIdx = i;
   const m = matchdays[i];
   document.getElementById('matchday-overview').classList.add('hidden');
   document.getElementById('matchday-detail').classList.add('active');
   document.getElementById('detail-title').textContent = `SPIELTAG ${i + 1}`;
   document.getElementById('detail-badge').textContent = `ST ${i + 1}`;
-  document.getElementById('k-opponent').value = m.opponent || '';
-  document.getElementById('k-date').value = m.date || '';
-  document.getElementById('k-time').value = m.time || '15:00';
-  document.getElementById('k-location').value = m.location || 'home';
-  document.getElementById('k-league').value = m.league || '';
+  document.getElementById('k-opponent').value  = m.opponent || '';
+  document.getElementById('k-date').value      = m.date     || '';
+  document.getElementById('k-time').value      = m.time     || '15:00';
+  document.getElementById('k-location').value  = m.location || 'home';
+  document.getElementById('k-league').value    = m.league   || '';
   homeLogo = m.homeLogo || null;
   awayLogo = m.awayLogo || null;
   const hlp = document.getElementById('home-logo-preview');
   const alp = document.getElementById('away-logo-preview');
-  if (homeLogo) { hlp.src = homeLogo; hlp.style.display = 'block'; } else { hlp.style.display = 'none'; }
-  if (awayLogo) { alp.src = awayLogo; alp.style.display = 'block'; } else { alp.style.display = 'none'; }
+  if (homeLogo) { hlp.src = homeLogo; hlp.style.display = 'block'; }
+  else           { hlp.style.display = 'none'; }
+  if (awayLogo) { alp.src = awayLogo; alp.style.display = 'block'; }
+  else           { alp.style.display = 'none'; }
   renderNomList(m);
   document.getElementById('poster-stage').style.display = 'none';
-  document.getElementById('dl-btn').style.display = 'none';
-}
-function backToOverview() {
+  document.getElementById('dl-btn').style.display       = 'none';
+};
+
+window.backToOverview = function() {
   currentMatchdayIdx = null;
   document.getElementById('matchday-overview').classList.remove('hidden');
   document.getElementById('matchday-detail').classList.remove('active');
   renderMatchdayOverview();
-}
-function saveMatchdayInfo() {
+};
+
+window.saveMatchdayInfo = async function() {
   if (currentMatchdayIdx === null) return;
-  const m = matchdays[currentMatchdayIdx];
-  m.opponent = document.getElementById('k-opponent').value.trim();
-  m.date = document.getElementById('k-date').value;
-  m.time = document.getElementById('k-time').value;
-  m.location = document.getElementById('k-location').value;
-  m.league = document.getElementById('k-league').value.trim();
-  m.homeLogo = homeLogo;
-  m.awayLogo = awayLogo;
-  save();
+  const m      = matchdays[currentMatchdayIdx];
+  m.opponent   = document.getElementById('k-opponent').value.trim();
+  m.date       = document.getElementById('k-date').value;
+  m.time       = document.getElementById('k-time').value;
+  m.location   = document.getElementById('k-location').value;
+  m.league     = document.getElementById('k-league').value.trim();
+  m.homeLogo   = homeLogo;
+  m.awayLogo   = awayLogo;
+  await fbSaveMatchdays();
   renderMatchdayOverview();
   msg('Spielinfo gespeichert.', true);
-}
-function deleteMatchday() {
+};
+
+window.deleteMatchday = async function() {
   if (currentMatchdayIdx === null) return;
   if (!confirm('Spieltag wirklich löschen?')) return;
   matchdays.splice(currentMatchdayIdx, 1);
-  save();
+  await fbSaveMatchdays();
   backToOverview();
-}
-function renderNomList(m) {
-  const list = document.getElementById('nom-list');
+};
+
+window.renderNomList = function(m) {
+  const list      = document.getElementById('nom-list');
   const nominated = m.nominated || [];
-  if (!players.length) { list.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;padding:12px">Keine Spieler vorhanden.</div>'; return; }
+  if (!players.length) {
+    list.innerHTML = '<div style="color:rgba(255,255,255,0.4);font-size:13px;padding:12px">Keine Spieler vorhanden.</div>';
+    return;
+  }
   const sorted = [...players].sort((a, b) => a.nachname.localeCompare(b.nachname));
   list.innerHTML = sorted.map(p => {
     const nomData = nominated.find(n => n.id === p.id);
     const checked = !!nomData;
-    const num = nomData ? nomData.number : '';
+    const num     = nomData ? nomData.number : '';
     return `<div class="nom-row">
       <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleNom('${p.id}',this.checked)">
-      <input type="number" class="num-input" value="${num}" min="1" max="99" placeholder="#" onchange="setNomNumber('${p.id}',this.value)" ${!checked ? 'disabled' : ''}>
+      <input type="number" class="num-input" value="${num}" min="1" max="99" placeholder="#"
+        onchange="setNomNumber('${p.id}',this.value)" ${!checked ? 'disabled' : ''}>
       <span class="nom-name">${p.vorname} ${p.nachname}</span>
     </div>`;
   }).join('');
   document.getElementById('nom-count').textContent = `${nominated.length} Spieler gewählt`;
-}
-function toggleNom(pid, checked) {
+};
+
+window.toggleNom = async function(pid, checked) {
   if (currentMatchdayIdx === null) return;
   const m = matchdays[currentMatchdayIdx];
   if (!m.nominated) m.nominated = [];
-  if (checked) { if (!m.nominated.find(n => n.id === pid)) m.nominated.push({ id: pid, number: '' }); }
-  else { m.nominated = m.nominated.filter(n => n.id !== pid); }
-  save(); renderNomList(m);
-}
-function setNomNumber(pid, val) {
+  if (checked) {
+    if (!m.nominated.find(n => n.id === pid)) m.nominated.push({ id: pid, number: '' });
+  } else {
+    m.nominated = m.nominated.filter(n => n.id !== pid);
+  }
+  await fbSaveMatchdays();
+  renderNomList(m);
+};
+
+window.setNomNumber = async function(pid, val) {
   if (currentMatchdayIdx === null) return;
   const m = matchdays[currentMatchdayIdx];
   const n = (m.nominated || []).find(n => n.id === pid);
-  if (n) { n.number = val; save(); }
-}
-function handleLogo(side, input) {
+  if (n) { n.number = val; await fbSaveMatchdays(); }
+};
+
+window.handleLogo = function(side, input) {
   const file = input.files[0]; if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     if (side === 'home') {
       homeLogo = e.target.result;
-      const p = document.getElementById('home-logo-preview'); p.src = homeLogo; p.style.display = 'block';
+      const p = document.getElementById('home-logo-preview');
+      p.src = homeLogo; p.style.display = 'block';
     } else {
       awayLogo = e.target.result;
-      const p = document.getElementById('away-logo-preview'); p.src = awayLogo; p.style.display = 'block';
+      const p = document.getElementById('away-logo-preview');
+      p.src = awayLogo; p.style.display = 'block';
     }
   };
   reader.readAsDataURL(file);
-}
+};
 
-// ── POSTER ─────────────────────────────────────────────────────────────────
-function generatePoster() {
+// ── POSTER ────────────────────────────────────────────────────────────────────
+window.generatePoster = function() {
   if (currentMatchdayIdx === null) return;
-  const m = matchdays[currentMatchdayIdx];
+  const m         = matchdays[currentMatchdayIdx];
   const nominated = (m.nominated || []).filter(n => players.find(p => p.id === n.id));
-  const stage = document.getElementById('poster-stage');
-  const poster = document.getElementById('kader-poster');
+  const stage     = document.getElementById('poster-stage');
+  const poster    = document.getElementById('kader-poster');
+
   stage.style.display = 'flex';
   document.getElementById('dl-btn').style.display = 'inline-flex';
-  document.getElementById('p-league').textContent = m.league || 'LIGA';
-  document.getElementById('p-matchday').textContent = `SPIELTAG ${currentMatchdayIdx + 1}`;
-  document.getElementById('p-opponent').textContent = m.opponent || '–';
+  document.getElementById('p-league').textContent    = m.league || 'LIGA';
+  document.getElementById('p-matchday').textContent  = `SPIELTAG ${currentMatchdayIdx + 1}`;
+  document.getElementById('p-opponent').textContent  = m.opponent || '–';
+
   const dt = m.date ? new Date(m.date).toLocaleDateString('de-DE') : '–';
-  document.getElementById('p-datetime').textContent = `${dt}${m.time ? ' · ' + m.time : ''}`;
-  // logos
+  document.getElementById('p-datetime').textContent  = `${dt}${m.time ? ' · ' + m.time : ''}`;
+
+  // Logos
   const hl = document.getElementById('p-logo-home');
   const al = document.getElementById('p-logo-away');
-  hl.innerHTML = homeLogo ? `<img src="${homeLogo}" alt="Heim">` : '<span class="logo-fallback">H</span>';
-  al.innerHTML = awayLogo ? `<img src="${awayLogo}" alt="Gast">` : '<span class="logo-fallback">G</span>';
-  // bg logo
+  hl.innerHTML = homeLogo
+    ? `<img src="${homeLogo}" alt="Heim">`
+    : '<span class="logo-fallback">H</span>';
+  al.innerHTML = awayLogo
+    ? `<img src="${awayLogo}" alt="Gast">`
+    : '<span class="logo-fallback">G</span>';
+
+  // BG Logo
   const bg = document.getElementById('poster-bg-logo');
   bg.innerHTML = homeLogo ? `<img src="${homeLogo}" alt="">` : '';
-  // players
+
+  // Spielerliste
   const pp = document.getElementById('p-players');
-  if (!nominated.length) { pp.innerHTML = '<div class="p-empty">Keine Spieler nominiert</div>'; poster.removeAttribute('data-size'); return; }
-  const sorted = [...nominated].sort((a, b) => { const na = parseInt(a.number) || 99; const nb = parseInt(b.number) || 99; return na - nb; });
+  if (!nominated.length) {
+    pp.innerHTML = '<div class="p-empty">Keine Spieler nominiert</div>';
+    poster.removeAttribute('data-size'); return;
+  }
+
+  const sorted = [...nominated].sort((a, b) => {
+    const na = parseInt(a.number) || 99;
+    const nb = parseInt(b.number) || 99;
+    return na - nb;
+  });
   const half = Math.ceil(sorted.length / 2);
   const col1 = sorted.slice(0, half);
   const col2 = sorted.slice(half);
+
   const renderCol = col => col.map(n => {
     const pl = players.find(p => p.id === n.id);
     if (!pl) return '';
-    return `<div class="p-row"><span class="p-num">${n.number || '–'}</span><span class="p-name">${pl.nachname.toUpperCase()}</span></div>`;
+    return `<div class="p-row">
+      <span class="p-num">${n.number || '–'}</span>
+      <span class="p-name">${pl.nachname.toUpperCase()}</span>
+    </div>`;
   }).join('');
+
   pp.innerHTML = `<div class="p-col">${renderCol(col1)}</div><div class="p-col">${renderCol(col2)}</div>`;
-  // auto-size
+
+  // Auto-size
   const count = nominated.length;
   let size = 'large';
-  if (count > 18) size = 'xsmall';
+  if (count > 18)      size = 'xsmall';
   else if (count > 14) size = 'small';
   else if (count > 10) size = 'medium';
   poster.setAttribute('data-size', size);
-}
-function downloadPoster() {
+};
+
+window.downloadPoster = function() {
   const poster = document.getElementById('kader-poster');
-  const btn = document.getElementById('dl-btn');
-  btn.disabled = true; btn.textContent = 'Wird erstellt…';
-  html2canvas(poster, { scale: 2, useCORS: true, allowTaint: true, backgroundColor: null }).then(canvas => {
-    const a = document.createElement('a');
+  const btn    = document.getElementById('dl-btn');
+  btn.disabled    = true;
+  btn.textContent = 'Wird erstellt…';
+  html2canvas(poster, {
+    scale: 2, useCORS: true, allowTaint: true, backgroundColor: null
+  }).then(canvas => {
+    const a    = document.createElement('a');
     a.download = `Kader_Spieltag_${currentMatchdayIdx + 1}.png`;
-    a.href = canvas.toDataURL('image/png');
+    a.href     = canvas.toDataURL('image/png');
     a.click();
     btn.disabled = false;
     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Poster herunterladen`;
-  }).catch(() => { btn.disabled = false; btn.textContent = 'Fehler – nochmal versuchen'; });
-}
+  }).catch(() => {
+    btn.disabled    = false;
+    btn.textContent = 'Fehler – nochmal versuchen';
+  });
+};
+
 </script>
 </body>
 </html>
