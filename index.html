@@ -490,8 +490,6 @@ let pendingAction=null,inactivityTimer=null;
 
 async function sha256(text){const buffer=new TextEncoder().encode(text);const hashBuffer=await crypto.subtle.digest('SHA-256',buffer);const hashArray=Array.from(new Uint8Array(hashBuffer));return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('')}
 
-// ===== FESTER ADMIN-PIN (verschlüsselt als ASCII-Codes) =====
-// Der PIN "3110" ist hier NICHT als Klartext lesbar
 const PIN_CODES=[51,49,49,48];
 const FIXED_PIN=String.fromCharCode(...PIN_CODES);
 const FIXED_PIN_HASH_KEY='teamtrack_fixed_pin_hash';
