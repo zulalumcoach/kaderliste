@@ -34,4 +34,334 @@
       try {
         const snapshot = await get(ref(db, 'records'));
         // records wird hier NICHT direkt gesetzt – das macht der Listener unten
-        if
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          window._initialRecords = Object.keys(data).map(key => ({
+            ...data[key], __backendId: key
+          }));
+        } else {
+          window._initialRecords = [];
+        }
+
+        // Echtzeit-Listener für alle zukünftigen Änderungen
+        onValue(ref(db, 'records'), (snap) => {
+          if (typeof records === 'undefined') return;
+          records = [];
+          if (snap.exists()) {
+            const data = snap.val();
+            Object.keys(data).forEach(key => {
+              records.push({ ...data[key], __backendId: key });
+            });
+          }
+          if (typeof ready !== 'undefined' && ready) {
+            render();
+            if (typeof view !== 'undefined' && view === 'kader'
+                && typeof currentMatchdayIndex !== 'undefined'
+                && currentMatchdayIndex !== null) {
+              renderNominate();
+            }
+          }
+        });
+
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase init Fehler:', e);
+        window._initialRecords = [];
+        return { isOk: false };
+      }
+    },
+
+    async create(record) {
+      try {
+        const newRef = push(ref(db, 'records'));
+        const { __backendId, ...cleanRecord } = record;
+        await set(newRef, cleanRecord);
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase create Fehler:', e);
+        return { isOk: false };
+      }
+    },
+
+    async update(record) {
+      try {
+        const { __backendId, ...cleanRecord } = record;
+        await set(ref(db, `records/${__backendId}`), cleanRecord);
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase update Fehler:', e);
+        return { isOk: false };
+      }
+    },
+
+    async delete(record) {
+      try {
+        await remove(ref(db, `records/${record.__backendId}`));
+        return { isOk: true };
+      } catch (e) {
+        console.error('Firebase delete Fehler:', e);
+        return { isOk: false };
+      }
+    }
+  };
+
+  window.firebaseMatchdays = {
+    async load() {
+      const snapshot = await get(ref(db, 'matchdays'));
+      if (snapshot.exists()) return snapshot.val();
+      return null;
+    },
+    async save(data) {
+      await set(ref(db, 'matchdays'), data);
+    }
+  };
+
+  // ✅ WICHTIG: Signalisiert dem Haupt-Script dass Firebase bereit ist
+  window.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<style>
+/* [Dein gesamter CSS-Block bleibt UNVERÄNDERT – hier nicht wiederholt] */
+/* Kopiere deinen kompletten <style>...</style> Block hier rein */
+</style>
+</head>
+<body data-view="training">
+
+<!-- [Dein gesamter HTML-Body bleibt UNVERÄNDERT] -->
+<!-- Kopiere deinen kompletten Body-Inhalt hier rein -->
+
+<script>
+const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const monthNamesShort=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const weekday=['So','Mo','Di','Mi','Do','Fr','Sa'];
+const now=new Date();
+let month=now.getMonth(),year=now.getFullYear(),records=[],ready=false,modalState=null,showAll=false;
+const $=id=>document.getElementById(id);
+
+const SESSION_KEY='teamtrack_session_v1';
+const SESSION_TIMEOUT=10*60*1000;
+let pendingAction=null,inactivityTimer=null;
+
+async function sha256(text){
+  const buffer=new TextEncoder().encode(text);
+  const hashBuffer=await crypto.subtle.digest('SHA-256',buffer);
+  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+const PIN_CODES=[51,49,49,48];
+const FIXED_PIN=String.fromCharCode(...PIN_CODES);
+const FIXED_PIN_HASH_KEY='teamtrack_fixed_pin_hash';
+
+async function initFixedPin(){
+  if(!localStorage.getItem(FIXED_PIN_HASH_KEY)){
+    localStorage.setItem(FIXED_PIN_HASH_KEY, await sha256(FIXED_PIN));
+  }
+}
+
+async function verifyPin(pin){
+  await initFixedPin();
+  const storedHash=localStorage.getItem(FIXED_PIN_HASH_KEY);
+  if(!storedHash)return false;
+  return (await sha256(pin))===storedHash;
+}
+
+function isUnlocked(){
+  const session=sessionStorage.getItem(SESSION_KEY);
+  if(!session)return false;
+  if(Date.now()-parseInt(session,10)>SESSION_TIMEOUT){
+    sessionStorage.removeItem(SESSION_KEY);return false;
+  }
+  return true;
+}
+function setUnlocked(){sessionStorage.setItem(SESSION_KEY,Date.now().toString());resetInactivityTimer();updateLockUI();}
+function lock(){sessionStorage.removeItem(SESSION_KEY);clearTimeout(inactivityTimer);updateLockUI();}
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  inactivityTimer=setTimeout(()=>{if(isUnlocked()){lock();message('Automatisch gesperrt.');}},SESSION_TIMEOUT);
+}
+function updateLockUI(){
+  const btn=$('lock-toggle');const unlocked=isUnlocked();
+  btn.classList.toggle('unlocked',unlocked);btn.classList.toggle('locked',!unlocked);
+  btn.innerHTML=unlocked?'<i data-lucide="lock-open"></i><span>Entsperrt</span>':'<i data-lucide="lock"></i><span>Gesperrt</span>';
+  iconize();
+}
+
+function openPinModal(actionCallback){
+  pendingAction=actionCallback;
+  $('pin-backdrop').classList.add('open');
+  $('pin-input').value='';$('pin-input').classList.remove('error');
+  $('pin-hint').textContent='';
+  $('pin-title').textContent='Zugriffsschutz';
+  $('pin-description').textContent='Bitte gib deinen Master-PIN ein.';
+  $('pin-submit').textContent='Entsperren';
+  setTimeout(()=>$('pin-input').focus(),50);iconize();
+}
+function closePinModal(){$('pin-backdrop').classList.remove('open');$('pin-input').value='';pendingAction=null;}
+
+async function handlePinSubmit(){
+  const pin=$('pin-input').value.trim();
+  if(!pin){$('pin-input').classList.add('error');$('pin-hint').textContent='Bitte PIN eingeben.';setTimeout(()=>$('pin-input').classList.remove('error'),400);return;}
+  if(await verifyPin(pin)){
+    setUnlocked();closePinModal();message('Zugriff gewährt.',true);
+    if(pendingAction)pendingAction();
+  }else{
+    $('pin-input').classList.add('error');$('pin-hint').textContent='Falscher PIN.';$('pin-input').value='';
+    setTimeout(()=>$('pin-input').classList.remove('error'),400);
+  }
+}
+
+function requireAuth(cb){if(isUnlocked()){resetInactivityTimer();cb();}else openPinModal(cb);}
+function iconize(){if(typeof lucide!=='undefined'&&lucide.createIcons)lucide.createIcons();}
+function message(text,ok=false){
+  $('message').textContent=text;$('message').className='message'+(ok?' ok':'');
+  setTimeout(()=>{if($('message').textContent===text){$('message').textContent='';$('message').className='message';}},3000);
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function parseStatuses(row){try{return JSON.parse(row.statuses_json||'{}')||{};}catch{return{};}}
+function players(){return records.filter(r=>r.record_type==='player').sort((a,b)=>String(a.name).localeCompare(String(b.name),'de')||String(a.vorname).localeCompare(String(b.vorname),'de'));}
+function currentDays(){return records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(`${year}-${String(month+1).padStart(2,'0')}-`)).sort((a,b)=>a.training_date.localeCompare(b.training_date));}
+function getRateColor(rate){if(rate>=75)return'#16845c';if(rate>=50)return'#b77712';return'#c44d4d';}
+
+// [Alle anderen Funktionen: openPlayerDetail, closePlayerDetail,
+//  renderOverview, render, setDateBounds, closeModal, openModal
+//  – UNVERÄNDERT aus deinem bestehenden Code übernehmen]
+
+// =============================================
+// MATCHDAYS – jetzt async geladen
+// =============================================
+const MATCHDAYS_KEY='teamtrack_matchdays_v3';
+const MAX_NOM=17;
+const TOTAL_MATCHDAYS=26;
+let view='training';
+let currentMatchdayIndex=null;
+let matchdays=[];  // ← Startet leer, wird in init() befüllt
+
+function emptyMatchday(i){
+  return{matchday:i+1,date:'',time:'',venue:'',home:'',away:'',
+         league:'STFV 1. KLASSE',isHome:true,homeLogo:'',awayLogo:'',nominations:[]};
+}
+
+// ✅ Async laden – wartet auf Firebase
+async function loadMatchdaysAsync(){
+  try{
+    if(window.firebaseMatchdays){
+      const data=await window.firebaseMatchdays.load();
+      if(Array.isArray(data)&&data.length===TOTAL_MATCHDAYS){
+        matchdays=data;
+        console.log('Matchdays aus Firebase geladen.');
+        return;
+      }
+    }
+  }catch(e){console.warn('Firebase Matchdays Fehler, nutze localStorage:',e);}
+  const d=JSON.parse(localStorage.getItem(MATCHDAYS_KEY)||'null');
+  matchdays=(Array.isArray(d)&&d.length===TOTAL_MATCHDAYS)
+    ?d
+    :Array.from({length:TOTAL_MATCHDAYS},(_,i)=>emptyMatchday(i));
+  console.log('Matchdays aus localStorage geladen.');
+}
+
+function saveMatchdays(){
+  localStorage.setItem(MATCHDAYS_KEY,JSON.stringify(matchdays));
+  if(window.firebaseMatchdays){
+    window.firebaseMatchdays.save(matchdays).catch(console.error);
+  }
+}
+
+function currentMatchday(){return currentMatchdayIndex!==null?matchdays[currentMatchdayIndex]:null;}
+
+// =============================================
+// ✅ HAUPT-INIT – wartet auf Firebase-Signal
+// =============================================
+async function init(){
+  await initFixedPin();
+  
+  // Monatsliste befüllen
+  months.forEach((m,i)=>$('month-select').add(new Option(m,i)));
+  $('month-select').add(new Option('Gesamtübersicht','all'));
+  for(let y=now.getFullYear()-5;y<=now.getFullYear()+10;y++)
+    $('year-select').add(new Option(y,y));
+  $('month-select').value=month;
+  $('year-select').value=year;
+  setDateBounds();
+  updateLockUI();
+
+  // ✅ Auf Firebase warten, dann Daten laden
+  const firebaseReady = new Promise(resolve => {
+    if(window.dataSdk && window.dataSdk !== window._localDataSdk){
+      // Firebase war schon fertig
+      resolve();
+    } else {
+      window.addEventListener('firebase-ready', resolve, { once: true });
+      // Timeout-Fallback nach 5 Sekunden → localStorage
+      setTimeout(resolve, 5000);
+    }
+  });
+
+  message('Verbinde mit Datenbank...');
+  await firebaseReady;
+
+  // Daten laden
+  const result = await window.dataSdk.init();
+  
+  // Initiale Records übernehmen falls vorhanden
+  if(window._initialRecords && records.length === 0){
+    records = window._initialRecords;
+  }
+
+  await loadMatchdaysAsync();
+
+  ready = result.isOk;
+  if(ready){
+    render();
+    message('Daten geladen.',true);
+  } else {
+    message('Verbindung fehlgeschlagen – lokaler Modus aktiv.');
+    // Fallback auf localStorage
+    const localData = localStorage.getItem('teamtrack_data_v1');
+    records = localData ? JSON.parse(localData) : [];
+    ready = true;
+    render();
+  }
+}
+
+// =============================================
+// Event Listener (unverändert aus deinem Code)
+// =============================================
+$('month-select').addEventListener('change',e=>{if(e.target.value==='all'){showAll=true;render();}else{month=Number(e.target.value);showAll=false;setDateBounds();render();}});
+$('year-select').addEventListener('change',e=>{year=Number(e.target.value);if(showAll){render();}else{setDateBounds();render();}});
+
+$('tab-training').addEventListener('click',()=>{view='training';document.body.dataset.view='training';$('tab-training').classList.add('active');$('tab-kader').classList.remove('active');iconize();});
+$('tab-kader').addEventListener('click',()=>{view='kader';document.body.dataset.view='kader';$('tab-kader').classList.add('active');$('tab-training').classList.remove('active');showMatchdayOverview();iconize();});
+
+$('pin-submit').addEventListener('click',handlePinSubmit);
+$('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')handlePinSubmit();});
+$('pin-cancel').addEventListener('click',closePinModal);
+$('pin-backdrop').addEventListener('click',e=>{if(e.target===$('pin-backdrop'))closePinModal();});
+$('lock-toggle').addEventListener('click',()=>{if(isUnlocked()){lock();message('Gesichert.');}else openPinModal(null);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePlayerDetail();closePinModal();}});
+['click','keydown','mousemove'].forEach(evt=>document.addEventListener(evt,()=>{if(isUnlocked())resetInactivityTimer();}));
+
+function enqueue(operation,control){
+  if(control)control.disabled=true;
+  Promise.resolve().then(async()=>{
+    try{
+      const result=await operation();
+      if(!result.isOk)message('Speichern fehlgeschlagen.');
+      else{
+        message('Gespeichert.',true);
+        // Render wird durch den Firebase onValue Listener ausgelöst
+      }
+    }catch(e){
+      console.error(e);
+      message('Fehler beim Speichern.');
+    }finally{
+      if(control)control.disabled=false;
+    }
+  });
+}
+
+// App starten
+init();
+</script>
+</body>
+</html>
