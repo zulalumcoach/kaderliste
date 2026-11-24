@@ -898,35 +898,70 @@ function setDateBounds(){
 // ===== MODAL =====
 function closeModal(){
   $('modal-backdrop').classList.remove('open');
-  $('modal-delete').dataset.confirm='';
-  $('modal-delete').textContent='Entfernen';
-  modalState=null;
+  $('modal-delete').dataset.confirm = '';
+  $('modal-delete').textContent = 'Entfernen';
+  $('modal-delete').setAttribute('hidden', '');
+  modalState = null;
 }
-function openModal(type,data={}){
-  modalState={type,...data};
+
+function openModal(type, data={}){
+  modalState = {type, ...data};
   $('modal-backdrop').classList.add('open');
-  $('modal-delete').hidden=true;
-  $('modal-save').hidden=false;
-  if(type==='player'){
-    const p=data.player;
-    $('modal-title').textContent=p?'Spieler bearbeiten':'Spieler hinzufügen';
-    $('modal-description').textContent='Trage Name und Vorname ein.';
-    $('modal-content').innerHTML=`<div class="fields"><div><label for="player-name">Name</label><input id="player-name" maxlength="80" value="${escapeHtml(p?.name||'')}"></div><div><label for="player-first">Vorname</label><input id="player-first" maxlength="80" value="${escapeHtml(p?.vorname||'')}"></div></div>`;
-    $('modal-save').textContent=p?'Änderungen speichern':'Spieler hinzufügen';
-    $('modal-delete').hidden=!p;
-    setTimeout(()=>$('player-name').focus(),50);
-  }else if(type==='status'){
-    $('modal-title').textContent='Trainingsstatus';
-    $('modal-description').textContent=`${data.player.vorname} ${data.player.name} · ${new Date(data.date+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}`;
-    $('modal-content').innerHTML='<div class="status-options"><button type="button" class="status-option" data-choice="T">T</button><button type="button" class="status-option" data-choice="E">E</button><button type="button" class="status-option" data-choice="ET">ET</button><button type="button" class="status-option" data-choice="">−</button></div>';
-    $('modal-save').hidden=true;
-  }else{
-    $('modal-title').textContent='Trainingstag entfernen?';
-    $('modal-description').textContent='Der Tag wird aus dem Raster entfernt.';
-    $('modal-content').innerHTML='';
-    $('modal-save').textContent='Tag entfernen';
+  $('modal-delete').setAttribute('hidden', '');
+  $('modal-delete').dataset.confirm = '';
+  $('modal-delete').textContent = 'Entfernen';
+  $('modal-save').removeAttribute('hidden');
+
+  if(type === 'player'){
+    const p = data.player;
+    $('modal-title').textContent = p ? 'Spieler bearbeiten' : 'Spieler hinzufügen';
+    $('modal-description').textContent = 'Trage Name und Vorname ein.';
+    $('modal-content').innerHTML = `<div class="fields">
+      <div><label for="player-name">Name</label>
+      <input id="player-name" maxlength="80" value="${escapeHtml(p?.name||'')}"></div>
+      <div><label for="player-first">Vorname</label>
+      <input id="player-first" maxlength="80" value="${escapeHtml(p?.vorname||'')}"></div>
+    </div>`;
+    $('modal-save').textContent = p ? 'Änderungen speichern' : 'Spieler hinzufügen';
+    if(p){
+      $('modal-delete').removeAttribute('hidden');
+    } else {
+      $('modal-delete').setAttribute('hidden', '');
+    }
+    setTimeout(() => $('player-name').focus(), 50);
+
+  } else if(type === 'status'){
+    $('modal-title').textContent = 'Trainingsstatus';
+    $('modal-description').textContent = `${data.player.vorname} ${data.player.name} · ${new Date(data.date+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}`;
+    $('modal-content').innerHTML = '<div class="status-options"><button type="button" class="status-option" data-choice="T">T</button><button type="button" class="status-option" data-choice="E">E</button><button type="button" class="status-option" data-choice="ET">ET</button><button type="button" class="status-option" data-choice="">−</button></div>';
+    $('modal-save').setAttribute('hidden', '');
+
+  } else {
+    $('modal-title').textContent = 'Trainingstag entfernen?';
+    $('modal-description').textContent = 'Der Tag wird aus dem Raster entfernt.';
+    $('modal-content').innerHTML = '';
+    $('modal-save').textContent = 'Tag entfernen';
   }
 }
+
+$('modal-delete').addEventListener('click', () => {
+  console.log('DELETE KLICK – modalState:', modalState);
+  if (!modalState) return;
+
+  if ($('modal-delete').dataset.confirm !== 'yes') {
+    $('modal-delete').dataset.confirm = 'yes';
+    $('modal-delete').textContent = 'Wirklich entfernen?';
+    return;
+  }
+
+  if (modalState.type === 'player' && modalState.player) {
+    const playerToDelete = modalState.player;
+    requireAuth(() => {
+      enqueue(() => window.dataSdk.delete(playerToDelete), $('modal-delete'));
+      closeModal();
+    });
+  }
+});
 
 // ===== MATCHDAY =====
 const MATCHDAYS_KEY='teamtrack_matchdays_v3';
