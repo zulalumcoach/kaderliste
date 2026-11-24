@@ -499,7 +499,10 @@ const auth  = getAuth(fbApp);
 const firebaseSdk = {
   async init() {
     try {
-      await signInAnonymously(auth);
+      // Sign in und warte bis Auth wirklich bereit ist
+      const userCredential = await signInAnonymously(auth);
+      console.log('Auth OK:', userCredential.user.uid);
+
       onValue(ref(db, 'records'), snap => {
         const data = snap.val() || {};
         records = Object.entries(data).map(([id, val]) => ({
@@ -518,36 +521,48 @@ const firebaseSdk = {
 
   async create(record) {
     try {
+      // Sicherstellen dass User eingeloggt ist
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
       const { __backendId, ...data } = record;
-      await push(ref(db, 'records'), data);
+      const result = await push(ref(db, 'records'), data);
+      console.log('Create OK:', result.key);
       return { isOk: true };
     } catch(e) {
-      console.error('Firebase create Fehler:', e);
+      console.error('Firebase create Fehler:', e.code, e.message);
       return { isOk: false };
     }
   },
 
   async update(record) {
     try {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
       const { __backendId, ...data } = record;
       await set(ref(db, `records/${__backendId}`), data);
       return { isOk: true };
     } catch(e) {
-      console.error('Firebase update Fehler:', e);
+      console.error('Firebase update Fehler:', e.code, e.message);
       return { isOk: false };
     }
   },
 
   async delete(record) {
     try {
+      if (!auth.currentUser) {
+        await signInAnonymously(auth);
+      }
       await remove(ref(db, `records/${record.__backendId}`));
       return { isOk: true };
     } catch(e) {
-      console.error('Firebase delete Fehler:', e);
+      console.error('Firebase delete Fehler:', e.code, e.message);
       return { isOk: false };
     }
   }
 };
+
 
 window.dataSdk = firebaseSdk;
 
@@ -752,10 +767,20 @@ async function init(){
   for(let y=now.getFullYear()-5;y<=now.getFullYear()+10;y++)$('year-select').add(new Option(y,y));
   $('month-select').value=month;$('year-select').value=year;
   setDateBounds();updateLockUI();
+
+  // Warte auf Auth bevor SDK init
+  await new Promise((resolve, reject) => {
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      unsubscribe();
+      resolve(user);
+    }, reject);
+  });
+
   const result=await window.dataSdk.init();
   ready=result.isOk;
   if(!ready)message('Firebase Verbindung fehlgeschlagen.');
 }
+
 // ===== EVENT LISTENER =====
 $('month-select').addEventListener('change',e=>{
   if(e.target.value==='all'){showAll=true;$('year-select').disabled=false;}
