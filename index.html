@@ -496,6 +496,7 @@ const db    = getDatabase(fbApp);
 const auth  = getAuth(fbApp);
 
 // ===== FIREBASE SDK =====
+import { getDatabase, ref, push, set, remove, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 let currentUser = null;
 
 const firebaseSdk = {
@@ -582,6 +583,42 @@ const firebaseSdk = {
       return { isOk: false };
     }
   }
+
+  async saveMatchdays(matchdaysData) {
+    try {
+      if (!currentUser) {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
+      }
+      await set(ref(db, 'matchdays'), matchdaysData);
+      console.log('Matchdays gespeichert ✅');
+      return { isOk: true };
+    } catch(e) {
+      console.error('Firebase saveMatchdays Fehler:', e.code, e.message);
+      return { isOk: false };
+    }
+  },
+
+  async loadMatchdays() {
+    try {
+      if (!currentUser) {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
+      }
+      const snap = await get(ref(db, 'matchdays'));
+      const data = snap.val();
+      if (Array.isArray(data) && data.length === TOTAL_MATCHDAYS) {
+        console.log('Matchdays geladen ✅');
+        return { isOk: true, data };
+      }
+      // Noch keine Daten in Firebase – leeres Array zurückgeben
+      return { isOk: true, data: null };
+    } catch(e) {
+      console.error('Firebase loadMatchdays Fehler:', e.code, e.message);
+      return { isOk: false, data: null };
+    }
+  }
+
 };
 
 window.dataSdk = firebaseSdk;
@@ -752,18 +789,20 @@ const MAX_NOM=17;
 const TOTAL_MATCHDAYS=26;
 let view='training';
 let currentMatchdayIndex=null;
-let matchdays=loadMatchdays();
+let matchdays=loadMatchdays(); // wird später von Firebase überschrieben
 
 function emptyMatchday(i){return{matchday:i+1,date:'',time:'',venue:'',home:'',away:'',league:'STFV 1. KLASSE',isHome:true,homeLogo:'',awayLogo:'',nominations:[]}}
 function loadMatchdays(){
-  try{
-    const d=JSON.parse(localStorage.getItem(MATCHDAYS_KEY));
-    if(Array.isArray(d) && d.length===TOTAL_MATCHDAYS) return d;
-  }catch{}
-  const arr=[];for(let i=0;i<TOTAL_MATCHDAYS;i++)arr.push(emptyMatchday(i));
+  // Gibt erstmal leeres Array zurück – Firebase lädt async später
+  const arr=[];
+  for(let i=0;i<TOTAL_MATCHDAYS;i++) arr.push(emptyMatchday(i));
   return arr;
 }
-function saveMatchdays(){localStorage.setItem(MATCHDAYS_KEY,JSON.stringify(matchdays))}
+
+async function saveMatchdays(){
+  await window.dataSdk.saveMatchdays(matchdays);
+}
+
 function currentMatchday(){return currentMatchdayIndex!==null?matchdays[currentMatchdayIndex]:null}
 
 // ===== ENQUEUE =====
@@ -796,10 +835,22 @@ async function init(){
     }, reject);
   });
 
-  const result=await window.dataSdk.init();
-  ready=result.isOk;
-  if(!ready)message('Firebase Verbindung fehlgeschlagen.');
+  const result = await window.dataSdk.init();
+ready = result.isOk;
+
+// Matchdays von Firebase laden
+if(ready){
+  const mdResult = await window.dataSdk.loadMatchdays();
+  if(mdResult.isOk && mdResult.data){
+    matchdays = mdResult.data;
+    console.log('Matchdays aus Firebase geladen ✅');
+  } else {
+    console.log('Keine Matchdays in Firebase – starte mit leerem Array');
+  }
 }
+
+if(!ready) message('Firebase Verbindung fehlgeschlagen.');
+
 
 // ===== EVENT LISTENER =====
 $('month-select').addEventListener('change',e=>{
