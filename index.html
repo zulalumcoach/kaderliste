@@ -1241,26 +1241,50 @@ async function init(){
 
   document.addEventListener('change',e=>{
     if(currentMatchdayIndex===null)return;
-    const md=currentMatchday();
-    if(!md.nominations)md.nominations=[];
+
     const chk=e.target.closest('.nom-check');
     if(chk){
-      const id=chk.dataset.nomId;
-      if(chk.checked){
-        if(!md.nominations.find(n=>n.id===id)){
-          if(md.nominations.length>=MAX_NOM){chk.checked=false;message(`Maximal ${MAX_NOM} Spieler erlaubt.`);return;}
-          md.nominations.push({id,number:''});
+      requireAuth(()=>{
+        const md=currentMatchday();
+        if(!md.nominations)md.nominations=[];
+        const id=chk.dataset.nomId;
+        if(chk.checked){
+          if(!md.nominations.find(n=>n.id===id)){
+            if(md.nominations.length>=MAX_NOM){
+              chk.checked=false;
+              message(`Maximal ${MAX_NOM} Spieler erlaubt.`);
+              return;
+            }
+            md.nominations.push({id,number:''});
+          }
+        }else{
+          md.nominations=md.nominations.filter(n=>n.id!==id);
         }
-      }else{md.nominations=md.nominations.filter(n=>n.id!==id);}
-      saveMatchdays();renderNominate();return;
+        // Kein Auto-Save – nur lokale Änderung
+        renderNominate();
+        message('Änderung vorgenommen – bitte speichern!');
+      });
+      // Wenn nicht eingeloggt: Checkbox zurücksetzen
+      if(!isUnlocked()) chk.checked=!chk.checked;
+      return;
     }
+
     const numInp=e.target.closest('.num-input');
     if(numInp){
-      const id=numInp.dataset.numId;
-      const nom=md.nominations.find(n=>n.id===id);
-      if(nom){nom.number=numInp.value;saveMatchdays();}
+      requireAuth(()=>{
+        const md=currentMatchday();
+        if(!md.nominations)md.nominations=[];
+        const id=numInp.dataset.numId;
+        const nom=md.nominations.find(n=>n.id===id);
+        if(nom){
+          nom.number=numInp.value;
+          // Kein Auto-Save – nur lokale Änderung
+          message('Änderung vorgenommen – bitte speichern!');
+        }
+      });
     }
   });
+
 
   // ===== GENERATE POSTER =====
   $('gen-poster').addEventListener('click',()=>{
