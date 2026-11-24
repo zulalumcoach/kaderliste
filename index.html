@@ -478,7 +478,7 @@ tbody tr:last-child td{border-bottom:0}
 <script type="module">
 // ===== FIREBASE IMPORTS =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, onValue, set, push, remove, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -496,13 +496,11 @@ const db    = getDatabase(fbApp);
 const auth  = getAuth(fbApp);
 
 // ===== FIREBASE SDK =====
-import { getDatabase, ref, push, set, remove, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 let currentUser = null;
 
 const firebaseSdk = {
   async init() {
     try {
-      // Warte bis Auth-Status bekannt ist
       await new Promise((resolve, reject) => {
         onAuthStateChanged(auth, user => {
           if (user) {
@@ -510,7 +508,6 @@ const firebaseSdk = {
             console.log('Auth bereit:', user.uid);
             resolve(user);
           } else {
-            // Kein User – anonym einloggen
             signInAnonymously(auth)
               .then(cred => {
                 currentUser = cred.user;
@@ -582,7 +579,7 @@ const firebaseSdk = {
       console.error('Firebase delete Fehler:', e.code, e.message);
       return { isOk: false };
     }
-  }
+  },  // ← Komma hier wichtig!
 
   async saveMatchdays(matchdaysData) {
     try {
@@ -611,7 +608,6 @@ const firebaseSdk = {
         console.log('Matchdays geladen ✅');
         return { isOk: true, data };
       }
-      // Noch keine Daten in Firebase – leeres Array zurückgeben
       return { isOk: true, data: null };
     } catch(e) {
       console.error('Firebase loadMatchdays Fehler:', e.code, e.message);
@@ -637,7 +633,12 @@ const SESSION_KEY='teamtrack_session_v1';
 const SESSION_TIMEOUT=10*60*1000;
 let pendingAction=null,inactivityTimer=null;
 
-async function sha256(text){const buffer=new TextEncoder().encode(text);const hashBuffer=await crypto.subtle.digest('SHA-256',buffer);const hashArray=Array.from(new Uint8Array(hashBuffer));return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function sha256(text){
+  const buffer=new TextEncoder().encode(text);
+  const hashBuffer=await crypto.subtle.digest('SHA-256',buffer);
+  const hashArray=Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 
 const PIN_CODES=[51,49,49,48];
 const FIXED_PIN=String.fromCharCode(...PIN_CODES);
@@ -648,9 +649,6 @@ async function initFixedPin(){
   if(!storedHash){const hash=await sha256(FIXED_PIN);localStorage.setItem(FIXED_PIN_HASH_KEY,hash);}
 }
 
-async function isPinSetup(){await initFixedPin();return true;}
-async function setupPin(pin){console.warn('PIN-Änderung nicht erlaubt.');return false;}
-
 async function verifyPin(pin){
   await initFixedPin();
   const storedHash=localStorage.getItem(FIXED_PIN_HASH_KEY);
@@ -659,11 +657,26 @@ async function verifyPin(pin){
   return inputHash===storedHash;
 }
 
-function isUnlocked(){const session=sessionStorage.getItem(SESSION_KEY);if(!session)return false;if(Date.now()-parseInt(session,10)>SESSION_TIMEOUT){sessionStorage.removeItem(SESSION_KEY);return false}return true}
-function setUnlocked(){sessionStorage.setItem(SESSION_KEY,Date.now().toString());resetInactivityTimer();updateLockUI()}
-function lock(){sessionStorage.removeItem(SESSION_KEY);clearTimeout(inactivityTimer);updateLockUI()}
-function resetInactivityTimer(){clearTimeout(inactivityTimer);inactivityTimer=setTimeout(()=>{if(isUnlocked()){lock();message('Automatisch gesperrt.')}},SESSION_TIMEOUT)}
-function updateLockUI(){const btn=$('lock-toggle');const unlocked=isUnlocked();btn.classList.toggle('unlocked',unlocked);btn.classList.toggle('locked',!unlocked);btn.innerHTML=unlocked?'<i data-lucide="lock-open"></i><span>Entsperrt</span>':'<i data-lucide="lock"></i><span>Gesperrt</span>';iconize()}
+function isUnlocked(){
+  const session=sessionStorage.getItem(SESSION_KEY);
+  if(!session)return false;
+  if(Date.now()-parseInt(session,10)>SESSION_TIMEOUT){sessionStorage.removeItem(SESSION_KEY);return false;}
+  return true;
+}
+function setUnlocked(){sessionStorage.setItem(SESSION_KEY,Date.now().toString());resetInactivityTimer();updateLockUI();}
+function lock(){sessionStorage.removeItem(SESSION_KEY);clearTimeout(inactivityTimer);updateLockUI();}
+function resetInactivityTimer(){
+  clearTimeout(inactivityTimer);
+  inactivityTimer=setTimeout(()=>{if(isUnlocked()){lock();message('Automatisch gesperrt.');}},SESSION_TIMEOUT);
+}
+function updateLockUI(){
+  const btn=$('lock-toggle');
+  const unlocked=isUnlocked();
+  btn.classList.toggle('unlocked',unlocked);
+  btn.classList.toggle('locked',!unlocked);
+  btn.innerHTML=unlocked?'<i data-lucide="lock-open"></i><span>Entsperrt</span>':'<i data-lucide="lock"></i><span>Gesperrt</span>';
+  iconize();
+}
 
 function openPinModal(actionCallback){
   pendingAction=actionCallback;
@@ -678,7 +691,12 @@ function openPinModal(actionCallback){
   iconize();
 }
 
-function closePinModal(){$('pin-backdrop').classList.remove('open');$('pin-input').value='';$('pin-input').classList.remove('error');pendingAction=null}
+function closePinModal(){
+  $('pin-backdrop').classList.remove('open');
+  $('pin-input').value='';
+  $('pin-input').classList.remove('error');
+  pendingAction=null;
+}
 
 async function handlePinSubmit(){
   const pin=$('pin-input').value.trim();
@@ -702,50 +720,103 @@ async function handlePinSubmit(){
   }
 }
 
-function requireAuth(actionCallback){if(isUnlocked()){resetInactivityTimer();actionCallback()}else openPinModal(actionCallback)}
+function requireAuth(actionCallback){
+  if(isUnlocked()){resetInactivityTimer();actionCallback();}
+  else openPinModal(actionCallback);
+}
 
 // ===== HILFSFUNKTIONEN =====
-function iconize(){if(typeof lucide!=='undefined'&&lucide.createIcons)lucide.createIcons()}
-function message(text,ok=false){$('message').textContent=text;$('message').className='message'+(ok?' ok':'');setTimeout(()=>{if($('message').textContent===text){$('message').textContent='';$('message').className='message'}},3000)}
-function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function parseStatuses(row){try{return JSON.parse(row.statuses_json||'{}')||{}}catch{return{}}}
-function players(){return records.filter(r=>r.record_type==='player').sort((a,b)=>String(a.name).localeCompare(String(b.name),'de')||String(a.vorname).localeCompare(String(b.vorname),'de'))}
-function currentDays(){return records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(`${year}-${String(month+1).padStart(2,'0')}-`)).sort((a,b)=>a.training_date.localeCompare(b.training_date))}
-function getRateColor(rate){if(rate>=75)return'#16845c';if(rate>=50)return'#b77712';return'#c44d4d'}
+function iconize(){if(typeof lucide!=='undefined'&&lucide.createIcons)lucide.createIcons();}
+function message(text,ok=false){
+  $('message').textContent=text;
+  $('message').className='message'+(ok?' ok':'');
+  setTimeout(()=>{if($('message').textContent===text){$('message').textContent='';$('message').className='message';}},3000);
+}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function parseStatuses(row){try{return JSON.parse(row.statuses_json||'{}')||{};}catch{return{};}}
+function players(){return records.filter(r=>r.record_type==='player').sort((a,b)=>String(a.name).localeCompare(String(b.name),'de')||String(a.vorname).localeCompare(String(b.vorname),'de'));}
+function currentDays(){return records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(`${year}-${String(month+1).padStart(2,'0')}-`)).sort((a,b)=>a.training_date.localeCompare(b.training_date));}
+function getRateColor(rate){if(rate>=75)return'#16845c';if(rate>=50)return'#b77712';return'#c44d4d';}
 
 // ===== SPIELER DETAIL MODAL =====
-function openPlayerDetail(playerId, monthFilter){
-  const player=records.find(r=>r.__backendId===playerId && r.record_type==='player');
+function openPlayerDetail(playerId,monthFilter){
+  const player=records.find(r=>r.__backendId===playerId&&r.record_type==='player');
   if(!player)return;
   const statuses=parseStatuses(player);
   const allDays=records.filter(r=>r.record_type==='day').sort((a,b)=>a.training_date.localeCompare(b.training_date));
   let daysToAnalyze=allDays;
-  if(monthFilter!==undefined && monthFilter!==null){const monthStr=`${year}-${String(monthFilter+1).padStart(2,'0')}`;daysToAnalyze=allDays.filter(d=>d.training_date.startsWith(monthStr));}
+  if(monthFilter!==undefined&&monthFilter!==null){
+    const monthStr=`${year}-${String(monthFilter+1).padStart(2,'0')}`;
+    daysToAnalyze=allDays.filter(d=>d.training_date.startsWith(monthStr));
+  }
   let attended=0,excused=0,et=0,absent=0;
-  daysToAnalyze.forEach(d=>{const s=statuses[d.training_date];if(s==='T')attended++;else if(s==='E')excused++;else if(s==='ET')et++;else absent++});
+  daysToAnalyze.forEach(d=>{const s=statuses[d.training_date];if(s==='T')attended++;else if(s==='E')excused++;else if(s==='ET')et++;else absent++;});
   const totalDays=daysToAnalyze.length;
   const rate=totalDays?Math.round(((attended+et)/totalDays)*100):0;
   const rateColor=getRateColor(rate);
-  $('pd-name').textContent=player.name.toUpperCase();$('pd-vorname').textContent=player.vorname;
-  if(monthFilter!==undefined && monthFilter!==null){$('pd-season').textContent=`${months[monthFilter].toUpperCase()} ${year}`;$('pd-rate-title').textContent=`Leistung ${months[monthFilter]} ${year}`;$('pd-attended-sub').textContent=`von ${totalDays} Tagen`;$('pd-total-days-sub').textContent=`im ${months[monthFilter]}`;$('pd-monthly-title').textContent=`Tagesübersicht ${months[monthFilter]} ${year}`;}
-  else{$('pd-season').textContent=`SAISON ${year}`;$('pd-rate-title').textContent='Gesamtleistung';$('pd-attended-sub').textContent=`von ${totalDays} Tagen`;$('pd-total-days-sub').textContent='im Jahr';$('pd-monthly-title').textContent=`Monatsübersicht ${year}`;}
-  $('pd-attended').textContent=attended;$('pd-excused').textContent=excused;$('pd-et').textContent=et;$('pd-absent').textContent=absent;$('pd-total-days').textContent=totalDays;
-  $('pd-rate').textContent=rate+'%';$('pd-rate').style.color=rateColor;
-  $('pd-rate-bar-label').textContent=rate+'%';$('pd-rate-bar-label').style.color=rateColor;
-  $('pd-rate-bar-fill').style.width=rate+'%';$('pd-rate-bar-fill').style.background=`linear-gradient(90deg,${rateColor},#21a67a)`;
-  if(monthFilter!==undefined && monthFilter!==null){
-    const monthStr=`${year}-${String(monthFilter+1).padStart(2,'0')}`;const monthDays=allDays.filter(d=>d.training_date.startsWith(monthStr));
-    if(monthDays.length===0){$('pd-monthly-grid').innerHTML='<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Monat</div>';}
-    else{$('pd-monthly-grid').innerHTML=monthDays.map(d=>{const date=new Date(d.training_date+'T12:00:00');const dayLabel=`${String(date.getDate()).padStart(2,'0')}.${String(monthFilter+1).padStart(2,'0')}`;const s=statuses[d.training_date];let badgeClass='none',badgeText='−';if(s==='T'){badgeClass='t';badgeText='T';}else if(s==='E'){badgeClass='e';badgeText='E';}else if(s==='ET'){badgeClass='et';badgeText='ET';}return`<div class="player-month-card has-data"><div class="month-name">${dayLabel} ${weekday[date.getDay()]}</div><div class="month-stats"><span class="legend-badge ${badgeClass}" style="display:inline-grid">${badgeText}</span></div><div class="month-rate">${s||'Fehlt'}</div></div>`}).join('');}
+  $('pd-name').textContent=player.name.toUpperCase();
+  $('pd-vorname').textContent=player.vorname;
+  if(monthFilter!==undefined&&monthFilter!==null){
+    $('pd-season').textContent=`${months[monthFilter].toUpperCase()} ${year}`;
+    $('pd-rate-title').textContent=`Leistung ${months[monthFilter]} ${year}`;
+    $('pd-attended-sub').textContent=`von ${totalDays} Tagen`;
+    $('pd-total-days-sub').textContent=`im ${months[monthFilter]}`;
+    $('pd-monthly-title').textContent=`Tagesübersicht ${months[monthFilter]} ${year}`;
   }else{
-    const monthlyData=[];for(let m=0;m<12;m++){const mStr=`${year}-${String(m+1).padStart(2,'0')}`;const daysInMonth=allDays.filter(d=>d.training_date.startsWith(mStr));if(daysInMonth.length===0)continue;let mAttended=0,mExcused=0,mEt=0,mAbsent=0;daysInMonth.forEach(d=>{const s=statuses[d.training_date];if(s==='T')mAttended++;else if(s==='E')mExcused++;else if(s==='ET')mEt++;else mAbsent++});monthlyData.push({name:monthNamesShort[m],days:daysInMonth.length,attended:mAttended,et:mEt,rate:daysInMonth.length?Math.round(((mAttended+mEt)/daysInMonth.length)*100):0});}
-    $('pd-monthly-grid').innerHTML=monthlyData.map(m=>`<div class="player-month-card ${m.days>0?'has-data':''}"><div class="month-name">${m.name}</div><div class="month-stats">${m.attended+m.et}/${m.days}</div><div class="month-rate" style="color:${getRateColor(m.rate)}">${m.rate}%</div></div>`).join('')||'<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Jahr</div>';
+    $('pd-season').textContent=`SAISON ${year}`;
+    $('pd-rate-title').textContent='Gesamtleistung';
+    $('pd-attended-sub').textContent=`von ${totalDays} Tagen`;
+    $('pd-total-days-sub').textContent='im Jahr';
+    $('pd-monthly-title').textContent=`Monatsübersicht ${year}`;
   }
-  $('player-detail-backdrop').classList.add('open');iconize();
+  $('pd-attended').textContent=attended;
+  $('pd-excused').textContent=excused;
+  $('pd-et').textContent=et;
+  $('pd-absent').textContent=absent;
+  $('pd-total-days').textContent=totalDays;
+  $('pd-rate').textContent=rate+'%';
+  $('pd-rate').style.color=rateColor;
+  $('pd-rate-bar-label').textContent=rate+'%';
+  $('pd-rate-bar-label').style.color=rateColor;
+  $('pd-rate-bar-fill').style.width=rate+'%';
+  $('pd-rate-bar-fill').style.background=`linear-gradient(90deg,${rateColor},#21a67a)`;
+  if(monthFilter!==undefined&&monthFilter!==null){
+    const monthStr=`${year}-${String(monthFilter+1).padStart(2,'0')}`;
+    const monthDays=allDays.filter(d=>d.training_date.startsWith(monthStr));
+    if(monthDays.length===0){
+      $('pd-monthly-grid').innerHTML='<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Monat</div>';
+    }else{
+      $('pd-monthly-grid').innerHTML=monthDays.map(d=>{
+        const date=new Date(d.training_date+'T12:00:00');
+        const dayLabel=`${String(date.getDate()).padStart(2,'0')}.${String(monthFilter+1).padStart(2,'0')}`;
+        const s=statuses[d.training_date];
+        let badgeClass='none',badgeText='−';
+        if(s==='T'){badgeClass='t';badgeText='T';}
+        else if(s==='E'){badgeClass='e';badgeText='E';}
+        else if(s==='ET'){badgeClass='et';badgeText='ET';}
+        return`<div class="player-month-card has-data"><div class="month-name">${dayLabel} ${weekday[date.getDay()]}</div><div class="month-stats"><span class="legend-badge ${badgeClass}" style="display:inline-grid">${badgeText}</span></div><div class="month-rate">${s||'Fehlt'}</div></div>`;
+      }).join('');
+    }
+  }else{
+    const monthlyData=[];
+    for(let m=0;m<12;m++){
+      const mStr=`${year}-${String(m+1).padStart(2,'0')}`;
+      const daysInMonth=allDays.filter(d=>d.training_date.startsWith(mStr));
+      if(daysInMonth.length===0)continue;
+      let mAttended=0,mEt=0;
+      daysInMonth.forEach(d=>{const s=statuses[d.training_date];if(s==='T')mAttended++;else if(s==='ET')mEt++;});
+      monthlyData.push({name:monthNamesShort[m],days:daysInMonth.length,attended:mAttended,et:mEt,rate:daysInMonth.length?Math.round(((mAttended+mEt)/daysInMonth.length)*100):0});
+    }
+    $('pd-monthly-grid').innerHTML=monthlyData.map(m=>`<div class="player-month-card ${m.days>0?'has-data':''}"><div class="month-name">${m.name}</div><div class="month-stats">${m.attended+m.et}/${m.days}</div><div class="month-rate" style="color:${getRateColor(m.rate)}">${m.rate}%</div></div>`).join('')
+      ||'<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Jahr</div>';
+  }
+  $('player-detail-backdrop').classList.add('open');
+  iconize();
 }
-function closePlayerDetail(){$('player-detail-backdrop').classList.remove('open')}
+
+function closePlayerDetail(){$('player-detail-backdrop').classList.remove('open');}
 $('player-detail-close').addEventListener('click',closePlayerDetail);
-$('player-detail-backdrop').addEventListener('click',e=>{if(e.target===$('player-detail-backdrop'))closePlayerDetail()});
+$('player-detail-backdrop').addEventListener('click',e=>{if(e.target===$('player-detail-backdrop'))closePlayerDetail();});
 
 // ===== RENDER ÜBERSICHT =====
 function renderOverview(ps){
@@ -753,35 +824,109 @@ function renderOverview(ps){
     let headHtml='<tr><th class="name-cell" scope="col">Name</th><th class="first-cell" scope="col">Vorname</th>';
     for(let m=0;m<12;m++)headHtml+=`<th class="day-col" scope="col">${monthNamesShort[m]}</th>`;
     headHtml+='<th class="rate-col" scope="col">Gesamtquote</th></tr>';
-    $('overview-head').innerHTML=headHtml;$('overview-sub').textContent=`Detaillierte Teilnahme aller Spieler im Jahr ${year}`;
+    $('overview-head').innerHTML=headHtml;
+    $('overview-sub').textContent=`Detaillierte Teilnahme aller Spieler im Jahr ${year}`;
     let globalAttended=0,globalDays=0;
-    if(!ps.length){$('overview-body').innerHTML=`<tr><td colspan="15"><div class="empty"><i data-lucide="users-round"></i><strong>Keine Spieler vorhanden</strong></div></td></tr>`;return{days:0,rate:0};}
-    const bodyHtml=ps.map(p=>{const statuses=parseStatuses(p);let playerAttended=0,playerDays=0,monthCells='';for(let m=0;m<12;m++){const monthStr=`${year}-${String(m+1).padStart(2,'0')}`;const daysInMonth=records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(monthStr));const mDaysCount=daysInMonth.length;if(mDaysCount>0){const mAttended=daysInMonth.filter(d=>{const s=statuses[d.training_date];return s==='T'||s==='ET'}).length;playerAttended+=mAttended;playerDays+=mDaysCount;monthCells+=`<td class="day-col"><span style="font-weight:700">${mAttended}/${mDaysCount}</span></td>`;}else monthCells+=`<td class="day-col" style="color:#b4c0be">–</td>`;}globalAttended+=playerAttended;globalDays+=playerDays;const totalRate=playerDays>0?Math.round((playerAttended/playerDays)*100):0;const rateColor=getRateColor(totalRate);return`<tr><td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td><td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>${monthCells}<td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${totalRate}%;background:${rateColor}"></div></div><span class="rate-value" style="color:${rateColor}">${totalRate}%</span></div></td></tr>`}).join('');
-    $('overview-body').innerHTML=bodyHtml;const globalRate=globalDays>0?Math.round((globalAttended/globalDays)*100):0;return{days:globalDays,rate:globalRate};
-  }catch(e){console.error('renderOverview Fehler:',e);return{days:0,rate:0}}
+    if(!ps.length){
+      $('overview-body').innerHTML=`<tr><td colspan="15"><div class="empty"><i data-lucide="users-round"></i><strong>Keine Spieler vorhanden</strong></div></td></tr>`;
+      return{days:0,rate:0};
+    }
+    const bodyHtml=ps.map(p=>{
+      const statuses=parseStatuses(p);
+      let playerAttended=0,playerDays=0,monthCells='';
+      for(let m=0;m<12;m++){
+        const monthStr=`${year}-${String(m+1).padStart(2,'0')}`;
+        const daysInMonth=records.filter(r=>r.record_type==='day'&&r.training_date?.startsWith(monthStr));
+        const mDaysCount=daysInMonth.length;
+        if(mDaysCount>0){
+          const mAttended=daysInMonth.filter(d=>{const s=statuses[d.training_date];return s==='T'||s==='ET';}).length;
+          playerAttended+=mAttended;playerDays+=mDaysCount;
+          monthCells+=`<td class="day-col"><span style="font-weight:700">${mAttended}/${mDaysCount}</span></td>`;
+        }else monthCells+=`<td class="day-col" style="color:#b4c0be">–</td>`;
+      }
+      globalAttended+=playerAttended;globalDays+=playerDays;
+      const totalRate=playerDays>0?Math.round((playerAttended/playerDays)*100):0;
+      const rateColor=getRateColor(totalRate);
+      return`<tr><td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td><td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>${monthCells}<td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${totalRate}%;background:${rateColor}"></div></div><span class="rate-value" style="color:${rateColor}">${totalRate}%</span></div></td></tr>`;
+    }).join('');
+    $('overview-body').innerHTML=bodyHtml;
+    const globalRate=globalDays>0?Math.round((globalAttended/globalDays)*100):0;
+    return{days:globalDays,rate:globalRate};
+  }catch(e){console.error('renderOverview Fehler:',e);return{days:0,rate:0};}
 }
 
 // ===== RENDER HAUPT =====
 function render(){
   try{
     const ps=players(),days=currentDays(),overall=renderOverview(ps);
-    $('overview-panel').hidden=!showAll;$('attendance-panel').hidden=showAll;$('training-actions').hidden=showAll;
+    $('overview-panel').hidden=!showAll;
+    $('attendance-panel').hidden=showAll;
+    $('training-actions').hidden=showAll;
     $('period-label').textContent=`${months[month]} ${year} · ${days.length} Trainingstag${days.length===1?'':'e'}`;
-    $('stat-players').textContent=ps.length;$('stat-days').textContent=showAll?overall.days:days.length;
+    $('stat-players').textContent=ps.length;
+    $('stat-days').textContent=showAll?overall.days:days.length;
     let total=0;
-    const head='<tr><th class="name-cell" scope="col">Name</th><th class="first-cell" scope="col">Vorname</th>'+days.map(d=>{const date=new Date(d.training_date+'T12:00:00');return`<th class="day-col day-head" scope="col"><span class="date-top">${String(date.getDate()).padStart(2,'0')}.${String(month+1).padStart(2,'0')}</span><span class="date-bottom">${weekday[date.getDay()]}</span><button class="remove-day" type="button" data-remove-day="${escapeHtml(d.__backendId)}" title="Entfernen"><i data-lucide="x"></i></button></th>`}).join('')+'<th class="total-col" scope="col">Teilnahmen</th><th class="rate-col" scope="col">Quote</th><th class="actions-col" scope="col"> </th></tr>';
+    const head='<tr><th class="name-cell" scope="col">Name</th><th class="first-cell" scope="col">Vorname</th>'+days.map(d=>{
+      const date=new Date(d.training_date+'T12:00:00');
+      return`<th class="day-col day-head" scope="col"><span class="date-top">${String(date.getDate()).padStart(2,'0')}.${String(month+1).padStart(2,'0')}</span><span class="date-bottom">${weekday[date.getDay()]}</span><button class="remove-day" type="button" data-remove-day="${escapeHtml(d.__backendId)}" title="Entfernen"><i data-lucide="x"></i></button></th>`;
+    }).join('')+'<th class="total-col" scope="col">Teilnahmen</th><th class="rate-col" scope="col">Quote</th><th class="actions-col" scope="col"> </th></tr>';
     $('table-head').innerHTML=head;
-    if(!ps.length){$('table-body').innerHTML=`<tr><td colspan="${Math.max(5,days.length+5)}"><div class="empty"><i data-lucide="users-round"></i><strong>Noch keine Spieler eingetragen</strong></div></td></tr>`;}
-    else{$('table-body').innerHTML=ps.map(p=>{const statuses=parseStatuses(p);const count=days.filter(d=>['T','ET'].includes(statuses[d.training_date])).length;const rate=days.length?Math.round(count/days.length*100):0;total+=rate;const rateColor=getRateColor(rate);return`<tr><td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td><td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>${days.map(d=>{const st=statuses[d.training_date]||'';const displaySymbol=st||'−';const statusClass=st?st.toLowerCase():'none';return`<td class="day-col"><button type="button" class="status-btn ${statusClass}" data-status-player="${escapeHtml(p.__backendId)}" data-status-date="${escapeHtml(d.training_date)}" title="Status ändern">${displaySymbol}</button></td>`}).join('')}<td class="total-col"><span class="total-num">${count}</span> <span style="color:#9aabaa;font-size:11px">/ ${days.length}</span></td><td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${rateColor}"></div></div><span class="rate-value" style="color:${rateColor}">${rate}%</span></div></td><td class="actions-col"><button type="button" class="icon-btn" data-edit-player="${escapeHtml(p.__backendId)}"><i data-lucide="pencil"></i></button></td></tr>`}).join('');}
-    $('stat-rate').textContent=(showAll?overall.rate:(ps.length?Math.round(total/ps.length):0))+' %';iconize();
-  }catch(e){console.error('render() Fehler:',e)}
+    if(!ps.length){
+      $('table-body').innerHTML=`<tr><td colspan="${Math.max(5,days.length+5)}"><div class="empty"><i data-lucide="users-round"></i><strong>Noch keine Spieler eingetragen</strong></div></td></tr>`;
+    }else{
+      $('table-body').innerHTML=ps.map(p=>{
+        const statuses=parseStatuses(p);
+        const count=days.filter(d=>['T','ET'].includes(statuses[d.training_date])).length;
+        const rate=days.length?Math.round(count/days.length*100):0;
+        total+=rate;
+        const rateColor=getRateColor(rate);
+        return`<tr><td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td><td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>${days.map(d=>{const st=statuses[d.training_date]||'';const displaySymbol=st||'−';const statusClass=st?st.toLowerCase():'none';return`<td class="day-col"><button type="button" class="status-btn ${statusClass}" data-status-player="${escapeHtml(p.__backendId)}" data-status-date="${escapeHtml(d.training_date)}" title="Status ändern">${displaySymbol}</button></td>`;}).join('')}<td class="total-col"><span class="total-num">${count}</span> <span style="color:#9aabaa;font-size:11px">/ ${days.length}</span></td><td class="rate-col"><div class="rate-wrap"><div class="rate-track"><div class="rate-fill" style="width:${rate}%;background:${rateColor}"></div></div><span class="rate-value" style="color:${rateColor}">${rate}%</span></div></td><td class="actions-col"><button type="button" class="icon-btn" data-edit-player="${escapeHtml(p.__backendId)}"><i data-lucide="pencil"></i></button></td></tr>`;
+      }).join('');
+    }
+    $('stat-rate').textContent=(showAll?overall.rate:(ps.length?Math.round(total/ps.length):0))+' %';
+    iconize();
+  }catch(e){console.error('render() Fehler:',e);}
 }
 
-function setDateBounds(){const prefix=`${year}-${String(month+1).padStart(2,'0')}`,last=new Date(year,month+1,0).getDate();$('date-input').min=prefix+'-01';$('date-input').max=prefix+'-'+String(last).padStart(2,'0');if(!$('date-input').value.startsWith(prefix))$('date-input').value=prefix+'-'+String(Math.min(now.getDate(),last)).padStart(2,'0')}
+function setDateBounds(){
+  const prefix=`${year}-${String(month+1).padStart(2,'0')}`,last=new Date(year,month+1,0).getDate();
+  $('date-input').min=prefix+'-01';
+  $('date-input').max=prefix+'-'+String(last).padStart(2,'0');
+  if(!$('date-input').value.startsWith(prefix))$('date-input').value=prefix+'-'+String(Math.min(now.getDate(),last)).padStart(2,'0');
+}
 
 // ===== MODAL =====
-function closeModal(){$('modal-backdrop').classList.remove('open');$('modal-delete').dataset.confirm='';$('modal-delete').textContent='Entfernen';modalState=null}
-function openModal(type,data={}){modalState={type,...data};$('modal-backdrop').classList.add('open');$('modal-delete').hidden=true;$('modal-save').hidden=false;if(type==='player'){const p=data.player;$('modal-title').textContent=p?'Spieler bearbeiten':'Spieler hinzufügen';$('modal-description').textContent='Trage Name und Vorname ein.';$('modal-content').innerHTML=`<div class="fields"><div><label for="player-name">Name</label><input id="player-name" maxlength="80" value="${escapeHtml(p?.name||'')}"></div><div><label for="player-first">Vorname</label><input id="player-first" maxlength="80" value="${escapeHtml(p?.vorname||'')}"></div></div>`;$('modal-save').textContent=p?'Änderungen speichern':'Spieler hinzufügen';$('modal-delete').hidden=!p;setTimeout(()=>$('player-name').focus(),50)}else if(type==='status'){$('modal-title').textContent='Trainingsstatus';$('modal-description').textContent=`${data.player.vorname} ${data.player.name} · ${new Date(data.date+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}`;$('modal-content').innerHTML='<div class="status-options"><button type="button" class="status-option" data-choice="T">T</button><button type="button" class="status-option" data-choice="E">E</button><button type="button" class="status-option" data-choice="ET">ET</button><button type="button" class="status-option" data-choice="">−</button></div>';$('modal-save').hidden=true}else{$('modal-title').textContent='Trainingstag entfernen?';$('modal-description').textContent='Der Tag wird aus dem Raster entfernt.';$('modal-content').innerHTML='';$('modal-save').textContent='Tag entfernen'}}
+function closeModal(){
+  $('modal-backdrop').classList.remove('open');
+  $('modal-delete').dataset.confirm='';
+  $('modal-delete').textContent='Entfernen';
+  modalState=null;
+}
+function openModal(type,data={}){
+  modalState={type,...data};
+  $('modal-backdrop').classList.add('open');
+  $('modal-delete').hidden=true;
+  $('modal-save').hidden=false;
+  if(type==='player'){
+    const p=data.player;
+    $('modal-title').textContent=p?'Spieler bearbeiten':'Spieler hinzufügen';
+    $('modal-description').textContent='Trage Name und Vorname ein.';
+    $('modal-content').innerHTML=`<div class="fields"><div><label for="player-name">Name</label><input id="player-name" maxlength="80" value="${escapeHtml(p?.name||'')}"></div><div><label for="player-first">Vorname</label><input id="player-first" maxlength="80" value="${escapeHtml(p?.vorname||'')}"></div></div>`;
+    $('modal-save').textContent=p?'Änderungen speichern':'Spieler hinzufügen';
+    $('modal-delete').hidden=!p;
+    setTimeout(()=>$('player-name').focus(),50);
+  }else if(type==='status'){
+    $('modal-title').textContent='Trainingsstatus';
+    $('modal-description').textContent=`${data.player.vorname} ${data.player.name} · ${new Date(data.date+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}`;
+    $('modal-content').innerHTML='<div class="status-options"><button type="button" class="status-option" data-choice="T">T</button><button type="button" class="status-option" data-choice="E">E</button><button type="button" class="status-option" data-choice="ET">ET</button><button type="button" class="status-option" data-choice="">−</button></div>';
+    $('modal-save').hidden=true;
+  }else{
+    $('modal-title').textContent='Trainingstag entfernen?';
+    $('modal-description').textContent='Der Tag wird aus dem Raster entfernt.';
+    $('modal-content').innerHTML='';
+    $('modal-save').textContent='Tag entfernen';
+  }
+}
 
 // ===== MATCHDAY =====
 const MATCHDAYS_KEY='teamtrack_matchdays_v3';
@@ -789,21 +934,20 @@ const MAX_NOM=17;
 const TOTAL_MATCHDAYS=26;
 let view='training';
 let currentMatchdayIndex=null;
-let matchdays=loadMatchdays(); // wird später von Firebase überschrieben
+let matchdays=loadMatchdays();
 
-function emptyMatchday(i){return{matchday:i+1,date:'',time:'',venue:'',home:'',away:'',league:'STFV 1. KLASSE',isHome:true,homeLogo:'',awayLogo:'',nominations:[]}}
+function emptyMatchday(i){
+  return{matchday:i+1,date:'',time:'',venue:'',home:'',away:'',league:'STFV 1. KLASSE',isHome:true,homeLogo:'',awayLogo:'',nominations:[]};
+}
 function loadMatchdays(){
-  // Gibt erstmal leeres Array zurück – Firebase lädt async später
   const arr=[];
   for(let i=0;i<TOTAL_MATCHDAYS;i++) arr.push(emptyMatchday(i));
   return arr;
 }
-
 async function saveMatchdays(){
   await window.dataSdk.saveMatchdays(matchdays);
 }
-
-function currentMatchday(){return currentMatchdayIndex!==null?matchdays[currentMatchdayIndex]:null}
+function currentMatchday(){return currentMatchdayIndex!==null?matchdays[currentMatchdayIndex]:null;}
 
 // ===== ENQUEUE =====
 function enqueue(operation,control){
@@ -814,7 +958,7 @@ function enqueue(operation,control){
       if(!result.isOk)message('Speichern fehlgeschlagen.');
       else message('Gespeichert.',true);
     }catch{message('Fehler beim Speichern.');}
-    finally{if(control)control.disabled=false}
+    finally{if(control)control.disabled=false;}
   });
 }
 
@@ -824,175 +968,384 @@ async function init(){
   months.forEach((m,i)=>$('month-select').add(new Option(m,i)));
   $('month-select').add(new Option('Gesamtübersicht','all'));
   for(let y=now.getFullYear()-5;y<=now.getFullYear()+10;y++)$('year-select').add(new Option(y,y));
-  $('month-select').value=month;$('year-select').value=year;
-  setDateBounds();updateLockUI();
-
-  // Warte auf Auth bevor SDK init
-  await new Promise((resolve, reject) => {
-    const unsubscribe = auth.onAuthStateChanged(user => {
-      unsubscribe();
-      resolve(user);
-    }, reject);
-  });
+  $('month-select').value=month;
+  $('year-select').value=year;
+  setDateBounds();
+  updateLockUI();
 
   const result = await window.dataSdk.init();
-ready = result.isOk;
+  ready = result.isOk;
 
-// Matchdays von Firebase laden
-if(ready){
-  const mdResult = await window.dataSdk.loadMatchdays();
-  if(mdResult.isOk && mdResult.data){
-    matchdays = mdResult.data;
-    console.log('Matchdays aus Firebase geladen ✅');
-  } else {
-    console.log('Keine Matchdays in Firebase – starte mit leerem Array');
-  }
-}
-
-if(!ready) message('Firebase Verbindung fehlgeschlagen.');
-
-
-// ===== EVENT LISTENER =====
-$('month-select').addEventListener('change',e=>{
-  if(e.target.value==='all'){showAll=true;$('year-select').disabled=false;}
-  else{showAll=false;month=+e.target.value;setDateBounds();}
-  render();
-});
-$('year-select').addEventListener('change',e=>{year=+e.target.value;setDateBounds();render();});
-
-$('add-day').addEventListener('click',()=>requireAuth(async()=>{
-  const date=$('date-input').value;
-  if(!date)return message('Bitte ein Datum wählen.');
-  if(records.find(r=>r.record_type==='day'&&r.training_date===date))return message('Dieser Tag ist bereits eingetragen.');
-  enqueue(()=>window.dataSdk.create({record_type:'day',training_date:date}),$('add-day'));
-}));
-
-$('add-player').addEventListener('click',()=>requireAuth(()=>openModal('player')));
-
-$('modal-cancel').addEventListener('click',closeModal);
-$('modal-backdrop').addEventListener('click',e=>{if(e.target===$('modal-backdrop'))closeModal()});
-
-$('modal-save').addEventListener('click',()=>requireAuth(async()=>{
-  if(!modalState)return;
-  if(modalState.type==='player'){
-    const name=$('player-name').value.trim();
-    const vorname=$('player-first').value.trim();
-    if(!name||!vorname)return message('Bitte Name und Vorname eingeben.');
-    if(modalState.player){
-      const updated={...modalState.player,name,vorname};
-      enqueue(()=>window.dataSdk.update(updated),$('modal-save'));
+  if(ready){
+    const mdResult = await window.dataSdk.loadMatchdays();
+    if(mdResult.isOk && mdResult.data){
+      matchdays = mdResult.data;
+      console.log('Matchdays aus Firebase geladen ✅');
     }else{
-      enqueue(()=>window.dataSdk.create({record_type:'player',name,vorname,statuses_json:'{}'}), $('modal-save'));
+      console.log('Keine Matchdays in Firebase – starte mit leerem Array');
     }
-    closeModal();
-  }else if(modalState.type==='removeDay'){
-    const day=records.find(r=>r.__backendId===modalState.dayId);
-    if(day)enqueue(()=>window.dataSdk.delete(day),$('modal-save'));
-    closeModal();
   }
-}));
 
-$('modal-delete').addEventListener('click',()=>requireAuth(async()=>{
-  if(!modalState)return;
-  if($('modal-delete').dataset.confirm!=='yes'){
-    $('modal-delete').dataset.confirm='yes';
-    $('modal-delete').textContent='Wirklich entfernen?';
-    return;
-  }
-  if(modalState.type==='player'&&modalState.player){
-    enqueue(()=>window.dataSdk.delete(modalState.player),$('modal-delete'));
-    closeModal();
-  }
-}));
+  if(!ready) message('Firebase Verbindung fehlgeschlagen.');
 
-document.addEventListener('click',e=>{
-  // Status Button
-  const sb=e.target.closest('[data-status-player]');
-  if(sb){
-    requireAuth(()=>{
-      const playerId=sb.dataset.statusPlayer;
-      const date=sb.dataset.statusDate;
-      const player=records.find(r=>r.__backendId===playerId);
-      if(!player)return;
-      openModal('status',{player,date});
-    });
-    return;
-  }
-  // Edit Player
-  const ep=e.target.closest('[data-edit-player]');
-  if(ep){
-    requireAuth(()=>{
-      const player=records.find(r=>r.__backendId===ep.dataset.editPlayer);
-      if(player)openModal('player',{player});
-    });
-    return;
-  }
-  // Remove Day
-  const rd=e.target.closest('[data-remove-day]');
-  if(rd){
-    requireAuth(()=>{
-      openModal('removeDay',{dayId:rd.dataset.removeDay});
-    });
-    return;
-  }
-  // Status Option
-  const so=e.target.closest('[data-choice]');
-  if(so&&modalState?.type==='status'){
-    requireAuth(async()=>{
-      const choice=so.dataset.choice;
-      const player=records.find(r=>r.__backendId===modalState.player.__backendId);
-      if(!player)return;
-      const statuses=parseStatuses(player);
-      if(choice==='')delete statuses[modalState.date];
-      else statuses[modalState.date]=choice;
-      const updated={...player,statuses_json:JSON.stringify(statuses)};
-      enqueue(()=>window.dataSdk.update(updated));
+  // ===== EVENT LISTENER =====
+  $('month-select').addEventListener('change',e=>{
+    if(e.target.value==='all'){showAll=true;$('year-select').disabled=false;}
+    else{showAll=false;month=+e.target.value;setDateBounds();}
+    render();
+  });
+  $('year-select').addEventListener('change',e=>{year=+e.target.value;setDateBounds();render();});
+
+  $('add-day').addEventListener('click',()=>requireAuth(async()=>{
+    const date=$('date-input').value;
+    if(!date)return message('Bitte ein Datum wählen.');
+    if(records.find(r=>r.record_type==='day'&&r.training_date===date))return message('Dieser Tag ist bereits eingetragen.');
+    enqueue(()=>window.dataSdk.create({record_type:'day',training_date:date}),$('add-day'));
+  }));
+
+  $('add-player').addEventListener('click',()=>requireAuth(()=>openModal('player')));
+
+  $('modal-cancel').addEventListener('click',closeModal);
+  $('modal-backdrop').addEventListener('click',e=>{if(e.target===$('modal-backdrop'))closeModal();});
+
+  $('modal-save').addEventListener('click',()=>requireAuth(async()=>{
+    if(!modalState)return;
+    if(modalState.type==='player'){
+      const name=$('player-name').value.trim();
+      const vorname=$('player-first').value.trim();
+      if(!name||!vorname)return message('Bitte Name und Vorname eingeben.');
+      if(modalState.player){
+        const updated={...modalState.player,name,vorname};
+        enqueue(()=>window.dataSdk.update(updated),$('modal-save'));
+      }else{
+        enqueue(()=>window.dataSdk.create({record_type:'player',name,vorname,statuses_json:'{}'}),$('modal-save'));
+      }
       closeModal();
+    }else if(modalState.type==='removeDay'){
+      const day=records.find(r=>r.__backendId===modalState.dayId);
+      if(day)enqueue(()=>window.dataSdk.delete(day),$('modal-save'));
+      closeModal();
+    }
+  }));
+
+  $('modal-delete').addEventListener('click',()=>requireAuth(async()=>{
+    if(!modalState)return;
+    if($('modal-delete').dataset.confirm!=='yes'){
+      $('modal-delete').dataset.confirm='yes';
+      $('modal-delete').textContent='Wirklich entfernen?';
+      return;
+    }
+    if(modalState.type==='player'&&modalState.player){
+      enqueue(()=>window.dataSdk.delete(modalState.player),$('modal-delete'));
+      closeModal();
+    }
+  }));
+
+  document.addEventListener('click',e=>{
+    const sb=e.target.closest('[data-status-player]');
+    if(sb){
+      requireAuth(()=>{
+        const playerId=sb.dataset.statusPlayer;
+        const date=sb.dataset.statusDate;
+        const player=records.find(r=>r.__backendId===playerId);
+        if(!player)return;
+        openModal('status',{player,date});
+      });
+      return;
+    }
+    const ep=e.target.closest('[data-edit-player]');
+    if(ep){
+      requireAuth(()=>{
+        const player=records.find(r=>r.__backendId===ep.dataset.editPlayer);
+        if(player)openModal('player',{player});
+      });
+      return;
+    }
+    const rd=e.target.closest('[data-remove-day]');
+    if(rd){
+      requireAuth(()=>{openModal('removeDay',{dayId:rd.dataset.removeDay});});
+      return;
+    }
+    const so=e.target.closest('[data-choice]');
+    if(so&&modalState?.type==='status'){
+      requireAuth(async()=>{
+        const choice=so.dataset.choice;
+        const player=records.find(r=>r.__backendId===modalState.player.__backendId);
+        if(!player)return;
+        const statuses=parseStatuses(player);
+        if(choice==='')delete statuses[modalState.date];
+        else statuses[modalState.date]=choice;
+        const updated={...player,statuses_json:JSON.stringify(statuses)};
+        enqueue(()=>window.dataSdk.update(updated));
+        closeModal();
+      });
+      return;
+    }
+    const nc=e.target.closest('[data-player-id]');
+    if(nc){
+      const playerId=nc.dataset.playerId;
+      if(showAll)openPlayerDetail(playerId,null);
+      else openPlayerDetail(playerId,month);
+      return;
+    }
+  });
+
+  $('lock-toggle').addEventListener('click',()=>{
+    if(isUnlocked())lock();
+    else openPinModal(()=>{});
+  });
+
+  $('pin-submit').addEventListener('click',handlePinSubmit);
+  $('pin-cancel').addEventListener('click',closePinModal);
+  $('pin-backdrop').addEventListener('click',e=>{if(e.target===$('pin-backdrop'))closePinModal();});
+  $('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')handlePinSubmit();});
+  document.addEventListener('mousemove',()=>{if(isUnlocked())resetInactivityTimer();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePinModal();closePlayerDetail();}});
+
+  $('tab-training').addEventListener('click',()=>{
+    view='training';
+    document.body.dataset.view='training';
+    $('tab-training').classList.add('active');
+    $('tab-kader').classList.remove('active');
+    render();
+  });
+  $('tab-kader').addEventListener('click',()=>{
+    view='kader';
+    document.body.dataset.view='kader';
+    $('tab-kader').classList.add('active');
+    $('tab-training').classList.remove('active');
+    renderMatchdayOverview();
+    renderNominate();
+  });
+
+  // ===== MATCHDAY RENDER OVERVIEW =====
+  function renderMatchdayOverview(){
+    const filled=matchdays.filter(m=>m.nominations&&m.nominations.length>0).length;
+    $('md-filled-count').textContent=filled;
+    $('md-total-players').textContent=players().length;
+    $('matchday-grid').innerHTML=matchdays.map((md,i)=>{
+      const hasData=md.nominations&&md.nominations.length>0||md.date||md.away;
+      const locationClass=md.isHome===true?'home':md.isHome===false?'away':'none';
+      const locationLabel=md.isHome===true?'H':md.isHome===false?'A':'?';
+      const opponentHtml=md.away
+        ?`<span class="vs-label">vs</span><span class="opp-name">${escapeHtml(md.away)}</span>`
+        :'<span style="opacity:.4">Kein Gegner</span>';
+      const infoHtml=[md.date,md.time,md.venue].filter(Boolean).join(' · ')||'Noch keine Infos';
+      return`<div class="matchday-card${hasData?' has-data':''}" data-md-index="${i}">
+        <div class="md-top">
+          <span class="md-number">MD ${md.matchday}</span>
+          <span class="md-location ${locationClass}">${locationLabel}</span>
+        </div>
+        <div class="md-title">${String(md.matchday).padStart(2,'0')}</div>
+        <div class="md-opponent">${opponentHtml}</div>
+        <div class="md-info">${escapeHtml(infoHtml)}</div>
+        <div class="md-players"><strong>${md.nominations?.length||0}</strong> Spieler nominiert</div>
+      </div>`;
+    }).join('');
+    iconize();
+  }
+
+  // ===== MATCHDAY DETAIL =====
+  function openMatchdayDetail(index){
+    currentMatchdayIndex=index;
+    const md=matchdays[index];
+    $('detail-title').textContent=`MATCHDAY ${md.matchday}`;
+    $('detail-badge').textContent=`MD ${md.matchday}`;
+    $('m-location').value=md.isHome===false?'away':'home';
+    $('m-date').value=md.date||'';
+    $('m-time').value=md.time||'';
+    $('m-venue').value=md.venue||'';
+    $('m-home').value=md.home||'';
+    $('m-away').value=md.away||'';
+    $('m-league').value=md.league||'STFV 1. KLASSE';
+    if(md.homeLogo){$('home-logo-prev').src=md.homeLogo;$('home-logo-prev').hidden=false;}
+    else{$('home-logo-prev').src='';$('home-logo-prev').hidden=true;}
+    if(md.awayLogo){$('away-logo-prev').src=md.awayLogo;$('away-logo-prev').hidden=false;}
+    else{$('away-logo-prev').src='';$('away-logo-prev').hidden=true;}
+    $('matchday-overview').classList.add('hidden');
+    $('matchday-detail').classList.add('active');
+    renderNominate();
+    iconize();
+  }
+
+  function closeMatchdayDetail(){
+    $('matchday-detail').classList.remove('active');
+    $('matchday-overview').classList.remove('hidden');
+    currentMatchdayIndex=null;
+    renderMatchdayOverview();
+  }
+
+  $('back-to-overview').addEventListener('click',closeMatchdayDetail);
+
+  document.addEventListener('click',e=>{
+    const mc=e.target.closest('[data-md-index]');
+    if(mc)openMatchdayDetail(+mc.dataset.mdIndex);
+  });
+
+  // ===== LOGO UPLOAD =====
+  function fileToBase64(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=e=>res(e.target.result);
+      r.onerror=rej;
+      r.readAsDataURL(file);
     });
-    return;
   }
-  // Player Detail (name-cell / first-cell)
-  const nc=e.target.closest('[data-player-id]');
-  if(nc){
-    const playerId=nc.dataset.playerId;
-    if(showAll)openPlayerDetail(playerId,null);
-    else openPlayerDetail(playerId,month);
-    return;
+  $('m-home-logo').addEventListener('change',async e=>{
+    const file=e.target.files[0];if(!file)return;
+    const b64=await fileToBase64(file);
+    if(currentMatchdayIndex!==null){matchdays[currentMatchdayIndex].homeLogo=b64;$('home-logo-prev').src=b64;$('home-logo-prev').hidden=false;}
+  });
+  $('m-away-logo').addEventListener('change',async e=>{
+    const file=e.target.files[0];if(!file)return;
+    const b64=await fileToBase64(file);
+    if(currentMatchdayIndex!==null){matchdays[currentMatchdayIndex].awayLogo=b64;$('away-logo-prev').src=b64;$('away-logo-prev').hidden=false;}
+  });
+
+  // ===== SAVE MATCHDAY =====
+  $('save-match').addEventListener('click',()=>requireAuth(()=>{
+    if(currentMatchdayIndex===null)return;
+    const md=matchdays[currentMatchdayIndex];
+    md.isHome=$('m-location').value==='home';
+    md.date=$('m-date').value.trim();
+    md.time=$('m-time').value.trim();
+    md.venue=$('m-venue').value.trim();
+    md.home=$('m-home').value.trim();
+    md.away=$('m-away').value.trim();
+    md.league=$('m-league').value.trim();
+    saveMatchdays();
+    message('Spieltag gespeichert.',true);
+    renderMatchdayOverview();
+  }));
+
+  // ===== NOMINATE =====
+  function renderNominate(){
+    if(currentMatchdayIndex===null)return;
+    const md=currentMatchday();
+    const ps=players();
+    const noms=md.nominations||[];
+    $('nom-counter').textContent=`${noms.length} / ${MAX_NOM}`;
+    $('nominate-list').innerHTML=ps.length===0
+      ?'<div style="color:rgba(255,255,255,0.4);padding:20px;text-align:center">Keine Spieler vorhanden</div>'
+      :ps.map(p=>{
+        const nom=noms.find(n=>n.id===p.__backendId);
+        const checked=!!nom;
+        const num=nom?.number||'';
+        return`<div class="nom-row">
+          <input type="checkbox" class="nom-check" data-nom-id="${escapeHtml(p.__backendId)}" ${checked?'checked':''}>
+          <input type="number" class="num-input" min="1" max="99" placeholder="#" data-num-id="${escapeHtml(p.__backendId)}" value="${escapeHtml(String(num))}">
+          <span class="nom-name">${escapeHtml(p.vorname)} ${escapeHtml(p.name)}</span>
+        </div>`;
+      }).join('');
   }
-});
 
-// ===== LOCK TOGGLE =====
-$('lock-toggle').addEventListener('click',()=>{
-  if(isUnlocked())lock();
-  else openPinModal(()=>{});
-});
+  document.addEventListener('change',e=>{
+    if(currentMatchdayIndex===null)return;
+    const md=currentMatchday();
+    if(!md.nominations)md.nominations=[];
+    const chk=e.target.closest('.nom-check');
+    if(chk){
+      const id=chk.dataset.nomId;
+      if(chk.checked){
+        if(!md.nominations.find(n=>n.id===id)){
+          if(md.nominations.length>=MAX_NOM){chk.checked=false;message(`Maximal ${MAX_NOM} Spieler erlaubt.`);return;}
+          md.nominations.push({id,number:''});
+        }
+      }else{md.nominations=md.nominations.filter(n=>n.id!==id);}
+      saveMatchdays();renderNominate();return;
+    }
+    const numInp=e.target.closest('.num-input');
+    if(numInp){
+      const id=numInp.dataset.numId;
+      const nom=md.nominations.find(n=>n.id===id);
+      if(nom){nom.number=numInp.value;saveMatchdays();}
+    }
+  });
 
-// ===== PIN MODAL =====
-$('pin-submit').addEventListener('click',handlePinSubmit);
-$('pin-cancel').addEventListener('click',closePinModal);
-$('pin-backdrop').addEventListener('click',e=>{if(e.target===$('pin-backdrop'))closePinModal()});
-$('pin-input').addEventListener('keydown',e=>{if(e.key==='Enter')handlePinSubmit()});
-document.addEventListener('mousemove',()=>{if(isUnlocked())resetInactivityTimer()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closePinModal();closePlayerDetail()}});
+  // ===== GENERATE POSTER =====
+  $('gen-poster').addEventListener('click',()=>{
+    if(currentMatchdayIndex===null)return;
+    const md=currentMatchday();
+    const noms=md.nominations||[];
+    const poster=$('poster');
+    const content=$('poster-content');
+    const bgLogo=$('poster-bg-logo');
+    if(md.homeLogo){bgLogo.innerHTML=`<img src="${md.homeLogo}" alt="">`;bgLogo.hidden=false;}
+    else{bgLogo.innerHTML='';bgLogo.hidden=true;}
+    if(noms.length===0){content.innerHTML='<div class="p-empty">Keine Spieler nominiert.</div>';return;}
+    let sizeAttr='medium';
+    if(noms.length<=6)sizeAttr='large';
+    else if(noms.length<=10)sizeAttr='medium';
+    else if(noms.length<=14)sizeAttr='small';
+    else sizeAttr='xsmall';
+    poster.dataset.size=sizeAttr;
+    const sorted=[...noms].sort((a,b)=>(+a.number||99)-(+b.number||99));
+    const half=Math.ceil(sorted.length/2);
+    const col1=sorted.slice(0,half);
+    const col2=sorted.slice(half);
+    const playerRow=(nom)=>{
+      const player=records.find(r=>r.__backendId===nom.id);
+      if(!player)return'';
+      return`<div class="p-row"><span class="p-num">${nom.number||'–'}</span><span class="p-name">${escapeHtml(player.vorname)} ${escapeHtml(player.name)}</span></div>`;
+    };
+    const homeLogoHtml=md.homeLogo?`<img src="${md.homeLogo}" alt="${escapeHtml(md.home)}">`:`<span class="logo-fallback">${escapeHtml((md.home||'H').charAt(0).toUpperCase())}</span>`;
+    const awayLogoHtml=md.awayLogo?`<img src="${md.awayLogo}" alt="${escapeHtml(md.away)}">`:`<span class="logo-fallback">${escapeHtml((md.away||'A').charAt(0).toUpperCase())}</span>`;
+    content.innerHTML=`
+      <div class="p-header">
+        <div><div class="p-league">${escapeHtml(md.league||'LIGA')}</div></div>
+        <span class="p-trophy">🏆</span>
+      </div>
+      <div class="p-title-wrap">
+        <div class="p-title">KADER</div>
+        <div class="p-matchday">SPIELTAG ${md.matchday}</div>
+      </div>
+      <div class="p-match-info">
+        <div class="info-block"><span class="info-label">Datum</span><span class="info-value">${escapeHtml(md.date||'–')}</span></div>
+        <div class="info-block"><span class="info-label">Anstoß</span><span class="info-value time">${escapeHtml(md.time||'–')}</span></div>
+        <div class="info-block"><span class="info-label">Spielort</span><span class="info-value">${escapeHtml(md.venue||'–')}</span></div>
+      </div>
+      <div class="p-teams">
+        <div class="p-team"><div class="p-logo">${homeLogoHtml}</div><div class="p-team-name">${escapeHtml(md.home||'Heim')}</div></div>
+        <div class="p-vs">VS</div>
+        <div class="p-team"><div class="p-logo">${awayLogoHtml}</div><div class="p-team-name">${escapeHtml(md.away||'Gast')}</div></div>
+      </div>
+      <div class="p-players">
+        <div class="p-col">${col1.map(playerRow).join('')}</div>
+        <div class="p-col">${col2.map(playerRow).join('')}</div>
+      </div>`;
+    iconize();
+    message('Kaderliste generiert!',true);
+  });
 
-// ===== VIEW TABS =====
-$('tab-training').addEventListener('click',()=>{
-  view='training';
-  document.body.dataset.view='training';
-  $('tab-training').classList.add('active');
-  $('tab-kader').classList.remove('active');
+  // ===== DOWNLOAD POSTER =====
+  $('download-poster').addEventListener('click',async()=>{
+    const poster=$('poster');
+    try{
+      $('download-poster').disabled=true;
+      const canvas=await html2canvas(poster,{scale:2,useCORS:true,backgroundColor:null,logging:false});
+      const link=document.createElement('a');
+      link.download=`kader-spieltag-${currentMatchdayIndex!==null?matchdays[currentMatchdayIndex].matchday:'poster'}.png`;
+      link.href=canvas.toDataURL('image/png');
+      link.click();
+      message('Poster heruntergeladen!',true);
+    }catch(e){
+      console.error('Download Fehler:',e);
+      message('Download fehlgeschlagen.');
+    }finally{
+      $('download-poster').disabled=false;
+    }
+  });
+
+} // ← Ende init()
+
+// ===== START =====
+init().then(()=>{
   render();
-});
-$('tab-kader').addEventListener('click',()=>{
-  view='kader';
-  document.body.dataset.view='kader';
-  $('tab-kader').classList.add('active');
-  $('tab-training').classList.remove('active');
   renderMatchdayOverview();
-  renderNominate();
+  iconize();
 });
 
-// ===== MATCHDAY RENDER OVERVIEW =====
+// Diese müssen außerhalb init() stehen da sie global gebraucht werden
 function renderMatchdayOverview(){
   const filled=matchdays.filter(m=>m.nominations&&m.nominations.length>0).length;
   $('md-filled-count').textContent=filled;
@@ -1005,7 +1358,7 @@ function renderMatchdayOverview(){
       ?`<span class="vs-label">vs</span><span class="opp-name">${escapeHtml(md.away)}</span>`
       :'<span style="opacity:.4">Kein Gegner</span>';
     const infoHtml=[md.date,md.time,md.venue].filter(Boolean).join(' · ')||'Noch keine Infos';
-    return `<div class="matchday-card${hasData?' has-data':''}" data-md-index="${i}">
+    return`<div class="matchday-card${hasData?' has-data':''}" data-md-index="${i}">
       <div class="md-top">
         <span class="md-number">MD ${md.matchday}</span>
         <span class="md-location ${locationClass}">${locationLabel}</span>
@@ -1019,76 +1372,6 @@ function renderMatchdayOverview(){
   iconize();
 }
 
-// ===== MATCHDAY DETAIL =====
-function openMatchdayDetail(index){
-  currentMatchdayIndex=index;
-  const md=matchdays[index];
-  $('detail-title').textContent=`MATCHDAY ${md.matchday}`;
-  $('detail-badge').textContent=`MD ${md.matchday}`;
-  $('m-location').value=md.isHome===false?'away':'home';
-  $('m-date').value=md.date||'';
-  $('m-time').value=md.time||'';
-  $('m-venue').value=md.venue||'';
-  $('m-home').value=md.home||'';
-  $('m-away').value=md.away||'';
-  $('m-league').value=md.league||'STFV 1. KLASSE';
-  // Logos
-  if(md.homeLogo){$('home-logo-prev').src=md.homeLogo;$('home-logo-prev').hidden=false;}
-  else{$('home-logo-prev').src='';$('home-logo-prev').hidden=true;}
-  if(md.awayLogo){$('away-logo-prev').src=md.awayLogo;$('away-logo-prev').hidden=false;}
-  else{$('away-logo-prev').src='';$('away-logo-prev').hidden=true;}
-  $('matchday-overview').classList.add('hidden');
-  $('matchday-detail').classList.add('active');
-  renderNominate();
-  iconize();
-}
-
-function closeMatchdayDetail(){
-  $('matchday-detail').classList.remove('active');
-  $('matchday-overview').classList.remove('hidden');
-  currentMatchdayIndex=null;
-  renderMatchdayOverview();
-}
-
-$('back-to-overview').addEventListener('click',closeMatchdayDetail);
-
-document.addEventListener('click',e=>{
-  const mc=e.target.closest('[data-md-index]');
-  if(mc){
-    openMatchdayDetail(+mc.dataset.mdIndex);
-  }
-});
-
-// ===== LOGO UPLOAD =====
-function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=rej;r.readAsDataURL(file)})}
-$('m-home-logo').addEventListener('change',async e=>{
-  const file=e.target.files[0];if(!file)return;
-  const b64=await fileToBase64(file);
-  if(currentMatchdayIndex!==null){matchdays[currentMatchdayIndex].homeLogo=b64;$('home-logo-prev').src=b64;$('home-logo-prev').hidden=false;}
-});
-$('m-away-logo').addEventListener('change',async e=>{
-  const file=e.target.files[0];if(!file)return;
-  const b64=await fileToBase64(file);
-  if(currentMatchdayIndex!==null){matchdays[currentMatchdayIndex].awayLogo=b64;$('away-logo-prev').src=b64;$('away-logo-prev').hidden=false;}
-});
-
-// ===== SAVE MATCHDAY =====
-$('save-match').addEventListener('click',()=>requireAuth(()=>{
-  if(currentMatchdayIndex===null)return;
-  const md=matchdays[currentMatchdayIndex];
-  md.isHome=$('m-location').value==='home';
-  md.date=$('m-date').value.trim();
-  md.time=$('m-time').value.trim();
-  md.venue=$('m-venue').value.trim();
-  md.home=$('m-home').value.trim();
-  md.away=$('m-away').value.trim();
-  md.league=$('m-league').value.trim();
-  saveMatchdays();
-  message('Spieltag gespeichert.',true);
-  renderMatchdayOverview();
-}));
-
-// ===== NOMINATE =====
 function renderNominate(){
   if(currentMatchdayIndex===null)return;
   const md=currentMatchday();
@@ -1108,145 +1391,6 @@ function renderNominate(){
       </div>`;
     }).join('');
 }
-
-document.addEventListener('change',e=>{
-  if(currentMatchdayIndex===null)return;
-  const md=currentMatchday();
-  if(!md.nominations)md.nominations=[];
-  const chk=e.target.closest('.nom-check');
-  if(chk){
-    const id=chk.dataset.nomId;
-    if(chk.checked){
-      if(!md.nominations.find(n=>n.id===id)){
-        if(md.nominations.length>=MAX_NOM){chk.checked=false;message(`Maximal ${MAX_NOM} Spieler erlaubt.`);return;}
-        md.nominations.push({id,number:''});
-      }
-    }else{md.nominations=md.nominations.filter(n=>n.id!==id);}
-    saveMatchdays();renderNominate();return;
-  }
-  const numInp=e.target.closest('.num-input');
-  if(numInp){
-    const id=numInp.dataset.numId;
-    const nom=md.nominations.find(n=>n.id===id);
-    if(nom){nom.number=numInp.value;saveMatchdays();}
-  }
-});
-
-// ===== GENERATE POSTER =====
-$('gen-poster').addEventListener('click',()=>{
-  if(currentMatchdayIndex===null)return;
-  const md=currentMatchday();
-  const noms=md.nominations||[];
-  const poster=$('poster');
-  const content=$('poster-content');
-
-  // Background logo
-  const bgLogo=$('poster-bg-logo');
-  if(md.homeLogo){bgLogo.innerHTML=`<img src="${md.homeLogo}" alt="">`;bgLogo.hidden=false;}
-  else{bgLogo.innerHTML='';bgLogo.hidden=true;}
-
-  if(noms.length===0){content.innerHTML='<div class="p-empty">Keine Spieler nominiert.</div>';return;}
-
-  // Auto size
-  let sizeAttr='medium';
-  if(noms.length<=6)sizeAttr='large';
-  else if(noms.length<=10)sizeAttr='medium';
-  else if(noms.length<=14)sizeAttr='small';
-  else sizeAttr='xsmall';
-  poster.dataset.size=sizeAttr;
-
-  const sorted=[...noms].sort((a,b)=>(+a.number||99)-(+b.number||99));
-  const half=Math.ceil(sorted.length/2);
-  const col1=sorted.slice(0,half);
-  const col2=sorted.slice(half);
-
-  const playerRow=(nom)=>{
-    const player=records.find(r=>r.__backendId===nom.id);
-    if(!player)return'';
-    return`<div class="p-row">
-      <span class="p-num">${nom.number||'–'}</span>
-      <span class="p-name">${escapeHtml(player.vorname)} ${escapeHtml(player.name)}</span>
-    </div>`;
-  };
-
-  const homeLogoHtml=md.homeLogo
-    ?`<img src="${md.homeLogo}" alt="${escapeHtml(md.home)}">`
-    :`<span class="logo-fallback">${escapeHtml((md.home||'H').charAt(0).toUpperCase())}</span>`;
-  const awayLogoHtml=md.awayLogo
-    ?`<img src="${md.awayLogo}" alt="${escapeHtml(md.away)}">`
-    :`<span class="logo-fallback">${escapeHtml((md.away||'A').charAt(0).toUpperCase())}</span>`;
-
-  content.innerHTML=`
-    <div class="p-header">
-      <div>
-        <div class="p-league">${escapeHtml(md.league||'LIGA')}</div>
-      </div>
-      <span class="p-trophy">🏆</span>
-    </div>
-    <div class="p-title-wrap">
-      <div class="p-title">KADER</div>
-      <div class="p-matchday">SPIELTAG ${md.matchday}</div>
-    </div>
-    <div class="p-match-info">
-      <div class="info-block">
-        <span class="info-label">Datum</span>
-        <span class="info-value">${escapeHtml(md.date||'–')}</span>
-      </div>
-      <div class="info-block">
-        <span class="info-label">Anstoß</span>
-        <span class="info-value time">${escapeHtml(md.time||'–')}</span>
-      </div>
-      <div class="info-block">
-        <span class="info-label">Spielort</span>
-        <span class="info-value">${escapeHtml(md.venue||'–')}</span>
-      </div>
-    </div>
-    <div class="p-teams">
-      <div class="p-team">
-        <div class="p-logo">${homeLogoHtml}</div>
-        <div class="p-team-name">${escapeHtml(md.home||'Heim')}</div>
-      </div>
-      <div class="p-vs">VS</div>
-      <div class="p-team">
-        <div class="p-logo">${awayLogoHtml}</div>
-        <div class="p-team-name">${escapeHtml(md.away||'Gast')}</div>
-      </div>
-    </div>
-    <div class="p-players">
-      <div class="p-col">${col1.map(playerRow).join('')}</div>
-      <div class="p-col">${col2.map(playerRow).join('')}</div>
-    </div>
-  `;
-  iconize();
-  message('Kaderliste generiert!',true);
-});
-
-// ===== DOWNLOAD POSTER =====
-$('download-poster').addEventListener('click',async()=>{
-  const poster=$('poster');
-  try{
-    $('download-poster').disabled=true;
-    const canvas=await html2canvas(poster,{scale:2,useCORS:true,backgroundColor:null,logging:false});
-    const link=document.createElement('a');
-    link.download=`kader-spieltag-${currentMatchdayIndex!==null?matchdays[currentMatchdayIndex].matchday:'poster'}.png`;
-    link.href=canvas.toDataURL('image/png');
-    link.click();
-    message('Poster heruntergeladen!',true);
-  }catch(e){
-    console.error('Download Fehler:',e);
-    message('Download fehlgeschlagen.');
-  }finally{
-    $('download-poster').disabled=false;
-  }
-});
-
-// ===== START =====
-init().then(()=>{
-  render();
-  renderMatchdayOverview();
-  iconize();
-});
-
 </script>
 </body>
 </html>
