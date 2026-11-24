@@ -1028,18 +1028,25 @@ async function init(){
     }
   }));
 
-  $('modal-delete').addEventListener('click',()=>requireAuth(async()=>{
-    if(!modalState)return;
-    if($('modal-delete').dataset.confirm!=='yes'){
-      $('modal-delete').dataset.confirm='yes';
-      $('modal-delete').textContent='Wirklich entfernen?';
-      return;
-    }
-    if(modalState.type==='player'&&modalState.player){
-      enqueue(()=>window.dataSdk.delete(modalState.player),$('modal-delete'));
+ $('modal-delete').addEventListener('click', () => {
+  if (!modalState) return;
+
+  // Erster Klick – Bestätigung anfordern (kein Login nötig)
+  if ($('modal-delete').dataset.confirm !== 'yes') {
+    $('modal-delete').dataset.confirm = 'yes';
+    $('modal-delete').textContent = 'Wirklich entfernen?';
+    return;
+  }
+
+  // Zweiter Klick – Login prüfen und löschen
+  requireAuth(() => {
+    if (!modalState) return;
+    if (modalState.type === 'player' && modalState.player) {
+      enqueue(() => window.dataSdk.delete(modalState.player), $('modal-delete'));
       closeModal();
     }
-  }));
+  });
+});
 
   document.addEventListener('click',e=>{
     const sb=e.target.closest('[data-status-player]');
