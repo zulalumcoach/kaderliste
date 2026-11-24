@@ -479,7 +479,7 @@ tbody tr:last-child td{border-bottom:0}
 // ===== FIREBASE IMPORTS =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBqmHK8_70xK1ID-CostqsI_7j07ZABGW8",
@@ -496,12 +496,30 @@ const db    = getDatabase(fbApp);
 const auth  = getAuth(fbApp);
 
 // ===== FIREBASE SDK =====
+let currentUser = null;
+
 const firebaseSdk = {
   async init() {
     try {
-      // Sign in und warte bis Auth wirklich bereit ist
-      const userCredential = await signInAnonymously(auth);
-      console.log('Auth OK:', userCredential.user.uid);
+      // Warte bis Auth-Status bekannt ist
+      await new Promise((resolve, reject) => {
+        onAuthStateChanged(auth, user => {
+          if (user) {
+            currentUser = user;
+            console.log('Auth bereit:', user.uid);
+            resolve(user);
+          } else {
+            // Kein User – anonym einloggen
+            signInAnonymously(auth)
+              .then(cred => {
+                currentUser = cred.user;
+                console.log('Anonym eingeloggt:', cred.user.uid);
+                resolve(cred.user);
+              })
+              .catch(reject);
+          }
+        });
+      });
 
       onValue(ref(db, 'records'), snap => {
         const data = snap.val() || {};
@@ -512,6 +530,7 @@ const firebaseSdk = {
         if (ready) render();
         if (ready && view === 'kader' && currentMatchdayIndex !== null) renderNominate();
       });
+
       return { isOk: true };
     } catch(e) {
       console.error('Firebase Init Fehler:', e);
@@ -521,9 +540,9 @@ const firebaseSdk = {
 
   async create(record) {
     try {
-      // Sicherstellen dass User eingeloggt ist
-      if (!auth.currentUser) {
-        await signInAnonymously(auth);
+      if (!currentUser) {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
       }
       const { __backendId, ...data } = record;
       const result = await push(ref(db, 'records'), data);
@@ -537,8 +556,9 @@ const firebaseSdk = {
 
   async update(record) {
     try {
-      if (!auth.currentUser) {
-        await signInAnonymously(auth);
+      if (!currentUser) {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
       }
       const { __backendId, ...data } = record;
       await set(ref(db, `records/${__backendId}`), data);
@@ -551,8 +571,9 @@ const firebaseSdk = {
 
   async delete(record) {
     try {
-      if (!auth.currentUser) {
-        await signInAnonymously(auth);
+      if (!currentUser) {
+        const cred = await signInAnonymously(auth);
+        currentUser = cred.user;
       }
       await remove(ref(db, `records/${record.__backendId}`));
       return { isOk: true };
@@ -562,7 +583,6 @@ const firebaseSdk = {
     }
   }
 };
-
 
 window.dataSdk = firebaseSdk;
 
