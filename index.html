@@ -1748,13 +1748,15 @@ async function init(){
     const homePrev = $('home-logo-prev');
     const awayPrev = $('away-logo-prev');
 
-    if(md.homeLogo){
-      homePrev.src = md.homeLogo;
-      homePrev.style.display = 'block';
-    } else {
-      homePrev.src = '';
-      homePrev.style.display = 'none';
-    }
+    const myLogo = md.isHome ? md.homeLogo : md.awayLogo;
+
+if(myLogo){
+  bgLogo.innerHTML = `<img src="${myLogo}" alt="">`;
+  bgLogo.style.display = 'grid';
+} else {
+  bgLogo.innerHTML = '';
+  bgLogo.style.display = 'none';
+}
 
     if(md.awayLogo){
       awayPrev.src = md.awayLogo;
