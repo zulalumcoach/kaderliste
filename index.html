@@ -175,7 +175,7 @@ label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:1px;c
 select,input{height:42px;border:1px solid #dce6e4;border-radius:10px;background:#fff;color:var(--navy);padding:0 12px;outline:none}
 select:focus,input:focus{border-color:var(--green)}
 #month-select{min-width:145px}
-#year-select{min-width:105px}
+#year-select{min-width:145px}
 .btn{height:42px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--navy);display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 15px;font-weight:800;white-space:nowrap}
 .btn svg{width:17px;height:17px}
 .btn.primary{background:var(--green);border-color:var(--green);color:white}
@@ -350,12 +350,22 @@ tbody tr:last-child td{border-bottom:0}
 <section class="toolbar training-view">
   <div class="toolbar-left">
     <div class="period-fields">
-      <div><label for="month-select">Monat</label><select id="month-select"></select></div>
-      <div><label for="year-select">Jahr</label><select id="year-select"></select></div>
+      <div>
+        <label for="month-select">Monat</label>
+        <select id="month-select"></select>
+      </div>
+      <div>
+        <!-- ✅ GEÄNDERT: "Jahr" → "Saison" -->
+        <label for="year-select">Saison</label>
+        <select id="year-select"></select>
+      </div>
     </div>
   </div>
   <div id="training-actions" class="toolbar-right">
-    <div><label for="date-input">Trainingstag wählen</label><input id="date-input" type="date"></div>
+    <div>
+      <label for="date-input">Trainingstag wählen</label>
+      <input id="date-input" type="date">
+    </div>
     <button id="add-day" class="btn" type="button">
       <i data-lucide="calendar-plus"></i> Tag hinzufügen
     </button>
@@ -382,12 +392,16 @@ tbody tr:last-child td{border-bottom:0}
 
 <section class="panel overview training-view" id="overview-panel" style="display:none">
   <div class="panel-head">
-    <div><h2>Jahres-Gesamtübersicht</h2><p id="overview-sub" class="sub"></p></div>
+    <div>
+      <h2>Saison-Gesamtübersicht</h2>
+      <p id="overview-sub" class="sub"></p>
+    </div>
   </div>
   <div class="table-scroll">
     <table><thead id="overview-head"></thead><tbody id="overview-body"></tbody></table>
   </div>
-  <div class="panel-foot">💡 Klicke auf einen Spieler für die gesamte Jahresübersicht.</div>
+  <!-- ✅ GEÄNDERT: Hinweis auf Saison statt Jahr -->
+  <div class="panel-foot">💡 Klicke auf einen Spieler für die gesamte Saisonübersicht.</div>
 </section>
 
 <section id="attendance-panel" class="panel training-view">
@@ -445,22 +459,28 @@ tbody tr:last-child td{border-bottom:0}
               <option value="away">✈️ Auswärtsspiel (A)</option>
             </select>
           </div>
-          <div><label for="m-date">Datum</label>
+          <div>
+            <label for="m-date">Datum</label>
             <input id="m-date" type="text" maxlength="20" placeholder="z. B. FR 06. NOV">
           </div>
-          <div><label for="m-time">Uhrzeit</label>
+          <div>
+            <label for="m-time">Uhrzeit</label>
             <input id="m-time" type="text" maxlength="10" placeholder="z. B. 18:30 UHR">
           </div>
-          <div><label for="m-venue">Spielort</label>
+          <div>
+            <label for="m-venue">Spielort</label>
             <input id="m-venue" maxlength="40" placeholder="Sportplatz Peggau">
           </div>
-          <div><label for="m-home">Heimverein</label>
+          <div>
+            <label for="m-home">Heimverein</label>
             <input id="m-home" maxlength="40" placeholder="ASV Gösting">
           </div>
-          <div><label for="m-away">Gastverein (Gegner)</label>
+          <div>
+            <label for="m-away">Gastverein (Gegner)</label>
             <input id="m-away" maxlength="40" placeholder="Gegner eingeben">
           </div>
-          <div><label for="m-league">Liga</label>
+          <div>
+            <label for="m-league">Liga</label>
             <input id="m-league" maxlength="30" placeholder="STFV 1. KLASSE" value="STFV 1. KLASSE">
           </div>
         </div>
@@ -552,7 +572,7 @@ tbody tr:last-child td{border-bottom:0}
         <div class="player-stat-card">
           <div class="stat-label">Trainingstage</div>
           <div class="stat-value" id="pd-total-days">0</div>
-          <div class="stat-sub" id="pd-total-days-sub">im Jahr</div>
+          <div class="stat-sub" id="pd-total-days-sub">in der Saison</div>
         </div>
         <div class="player-stat-card highlight">
           <div class="stat-label">Teilnahmequote</div>
@@ -641,13 +661,29 @@ const FIXED_PIN_HASH_KEY = 'teamtrack_fixed_pin_hash';
 const PIN_CODES = [51,49,49,48];
 const FIXED_PIN = String.fromCharCode(...PIN_CODES);
 
-const months = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
-const monthNamesShort = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const months = ['Januar','Februar','März','April','Mai','Juni',
+                'Juli','August','September','Oktober','November','Dezember'];
+const monthNamesShort = ['Jan','Feb','Mär','Apr','Mai','Jun',
+                         'Jul','Aug','Sep','Okt','Nov','Dez'];
 const weekday = ['So','Mo','Di','Mi','Do','Fr','Sa'];
 const now = new Date();
 
+// ===== ✅ SAISON LOGIK =====
+// Saison beginnt im Juli (Monat 6)
+// Wenn wir im Juli oder später sind → neue Saison hat begonnen
+// Wenn wir vor Juli sind → wir sind noch in der Saison des Vorjahres
+let seasonStartYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+let seasonEndYear = seasonStartYear + 1;
+
+// month = aktueller Monat (0-11)
+// year = Saison-Startjahr (z.B. 2024 für Saison 2024/25)
 let month = now.getMonth();
-let year = now.getFullYear();
+let year = seasonStartYear;
+
+// ===== ✅ SAISON MONATE REIHENFOLGE =====
+// Jul, Aug, Sep, Okt, Nov, Dez, Jan, Feb, Mär, Apr, Mai, Jun
+const seasonMonthOrder = [6,7,8,9,10,11,0,1,2,3,4,5];
+
 let records = [];
 let ready = false;
 let modalState = null;
@@ -776,7 +812,9 @@ const firebaseSdk = {
 window.dataSdk = firebaseSdk;
 
 // ===== HILFSFUNKTIONEN =====
-function iconize(){ if(typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons(); }
+function iconize(){
+  if(typeof lucide !== 'undefined' && lucide.createIcons) lucide.createIcons();
+}
 
 function message(text, ok=false){
   $('message').textContent = text;
@@ -808,10 +846,22 @@ function players(){
     );
 }
 
+// ===== ✅ SAISON HILFSFUNKTIONEN =====
+
+// Gibt das richtige Kalenderjahr für einen Saison-Monat zurück
+// Jul(6) - Dez(11) → Saison-Startjahr
+// Jan(0) - Jun(5)  → Saison-Startjahr + 1
+function yearForMonth(m){
+  return m >= 6 ? year : year + 1;
+}
+
+// Gibt alle Tage des aktuell gewählten Monats zurück
+// Berücksichtigt das korrekte Kalenderjahr für den Saison-Monat
 function currentDays(){
+  const y = yearForMonth(month);
   return records
     .filter(r => r.record_type === 'day' &&
-      r.training_date?.startsWith(`${year}-${String(month+1).padStart(2,'0')}-`))
+      r.training_date?.startsWith(`${y}-${String(month+1).padStart(2,'0')}-`))
     .sort((a,b) => a.training_date.localeCompare(b.training_date));
 }
 
@@ -821,13 +871,16 @@ function getRateColor(rate){
   return '#c44d4d';
 }
 
+// ===== ✅ DATUM GRENZEN – SAISONBEWUSST =====
 function setDateBounds(){
-  const prefix = `${year}-${String(month+1).padStart(2,'0')}`;
-  const last = new Date(year, month+1, 0).getDate();
+  const y = yearForMonth(month);
+  const prefix = `${y}-${String(month+1).padStart(2,'0')}`;
+  const last = new Date(y, month+1, 0).getDate();
   $('date-input').min = prefix + '-01';
   $('date-input').max = prefix + '-' + String(last).padStart(2,'0');
   if(!$('date-input').value.startsWith(prefix))
-    $('date-input').value = prefix + '-' + String(Math.min(now.getDate(), last)).padStart(2,'0');
+    $('date-input').value = prefix + '-' +
+      String(Math.min(now.getDate(), last)).padStart(2,'0');
 }
 
 // ===== ENQUEUE =====
@@ -850,7 +903,8 @@ function enqueue(operation, control){
 async function sha256(text){
   const buffer = new TextEncoder().encode(text);
   const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 async function initFixedPin(){
@@ -969,13 +1023,11 @@ function openModal(type, data={}){
   modalState = { type, ...data };
   $('modal-backdrop').classList.add('open');
 
-  // Reset Delete Button
   const delBtn = $('modal-delete');
   delBtn.style.display = 'none';
   delBtn.dataset.confirm = '';
   delBtn.textContent = 'Entfernen';
 
-  // Reset Save Button
   const saveBtn = $('modal-save');
   saveBtn.style.display = 'inline-flex';
 
@@ -995,7 +1047,6 @@ function openModal(type, data={}){
         </div>
       </div>`;
     saveBtn.textContent = p ? 'Änderungen speichern' : 'Spieler hinzufügen';
-    // ← DAS IST DER FIX: Löschen-Button nur bei bestehendem Spieler anzeigen
     delBtn.style.display = p ? 'inline-flex' : 'none';
     setTimeout(() => $('player-name').focus(), 50);
 
@@ -1023,19 +1074,17 @@ function openModal(type, data={}){
   }
 }
 
-// ===== MODAL DELETE – NUR EINMAL REGISTRIERT =====
+// ===== MODAL DELETE =====
 $('modal-delete').addEventListener('click', () => {
   if(!modalState) return;
   const delBtn = $('modal-delete');
 
-  // Erster Klick – Bestätigung
   if(delBtn.dataset.confirm !== 'yes'){
     delBtn.dataset.confirm = 'yes';
     delBtn.textContent = 'Wirklich entfernen?';
     return;
   }
 
-  // Zweiter Klick – Löschen mit Auth
   if(modalState.type === 'player' && modalState.player){
     const playerToDelete = modalState.player;
     requireAuth(() => {
@@ -1047,17 +1096,35 @@ $('modal-delete').addEventListener('click', () => {
 
 // ===== SPIELER DETAIL =====
 function openPlayerDetail(playerId, monthFilter){
-  const player = records.find(r => r.__backendId === playerId && r.record_type === 'player');
+  const player = records.find(r =>
+    r.__backendId === playerId && r.record_type === 'player');
   if(!player) return;
+
   const statuses = parseStatuses(player);
-  const allDays = records
+
+  // Alle Tage der ganzen Saison holen (Jul–Jun)
+  const allSeasonDays = records
     .filter(r => r.record_type === 'day')
+    .filter(r => {
+      // Nur Tage die zur aktuellen Saison gehören
+      const d = new Date(r.training_date + 'T12:00:00');
+      const dYear = d.getFullYear();
+      const dMonth = d.getMonth();
+      // Jul-Dez im Startjahr ODER Jan-Jun im Folgejahr
+      return (dYear === year && dMonth >= 6) ||
+             (dYear === year + 1 && dMonth < 6);
+    })
     .sort((a,b) => a.training_date.localeCompare(b.training_date));
-  let daysToAnalyze = allDays;
+
+  let daysToAnalyze = allSeasonDays;
+
+  // Wenn ein Monat gefiltert wird
   if(monthFilter !== undefined && monthFilter !== null){
-    const monthStr = `${year}-${String(monthFilter+1).padStart(2,'0')}`;
-    daysToAnalyze = allDays.filter(d => d.training_date.startsWith(monthStr));
+    const y = yearForMonth(monthFilter);
+    const monthStr = `${y}-${String(monthFilter+1).padStart(2,'0')}`;
+    daysToAnalyze = allSeasonDays.filter(d => d.training_date.startsWith(monthStr));
   }
+
   let attended=0, excused=0, et=0, absent=0;
   daysToAnalyze.forEach(d => {
     const s = statuses[d.training_date];
@@ -1066,25 +1133,30 @@ function openPlayerDetail(playerId, monthFilter){
     else if(s==='ET') et++;
     else absent++;
   });
+
   const totalDays = daysToAnalyze.length;
   const rate = totalDays ? Math.round(((attended+et)/totalDays)*100) : 0;
   const rateColor = getRateColor(rate);
+  const seasonLabel = `${year}/${String(year+1).slice(-2)}`;
 
   $('pd-name').textContent = player.name.toUpperCase();
   $('pd-vorname').textContent = player.vorname;
 
   if(monthFilter !== undefined && monthFilter !== null){
-    $('pd-season').textContent = `${months[monthFilter].toUpperCase()} ${year}`;
-    $('pd-rate-title').textContent = `Leistung ${months[monthFilter]} ${year}`;
+    $('pd-season').textContent =
+      `${months[monthFilter].toUpperCase()} ${yearForMonth(monthFilter)}`;
+    $('pd-rate-title').textContent =
+      `Leistung ${months[monthFilter]} ${yearForMonth(monthFilter)}`;
     $('pd-attended-sub').textContent = `von ${totalDays} Tagen`;
     $('pd-total-days-sub').textContent = `im ${months[monthFilter]}`;
-    $('pd-monthly-title').textContent = `Tagesübersicht ${months[monthFilter]} ${year}`;
+    $('pd-monthly-title').textContent =
+      `Tagesübersicht ${months[monthFilter]} ${yearForMonth(monthFilter)}`;
   } else {
-    $('pd-season').textContent = `SAISON ${year}`;
-    $('pd-rate-title').textContent = 'Gesamtleistung';
+    $('pd-season').textContent = `SAISON ${seasonLabel}`;
+    $('pd-rate-title').textContent = `Saison ${seasonLabel}`;
     $('pd-attended-sub').textContent = `von ${totalDays} Tagen`;
-    $('pd-total-days-sub').textContent = 'im Jahr';
-    $('pd-monthly-title').textContent = `Monatsübersicht ${year}`;
+    $('pd-total-days-sub').textContent = 'in der Saison';
+    $('pd-monthly-title').textContent = `Monatsübersicht Saison ${seasonLabel}`;
   }
 
   $('pd-attended').textContent = attended;
@@ -1097,18 +1169,22 @@ function openPlayerDetail(playerId, monthFilter){
   $('pd-rate-bar-label').textContent = rate + '%';
   $('pd-rate-bar-label').style.color = rateColor;
   $('pd-rate-bar-fill').style.width = rate + '%';
-  $('pd-rate-bar-fill').style.background = `linear-gradient(90deg,${rateColor},#21a67a)`;
+  $('pd-rate-bar-fill').style.background =
+    `linear-gradient(90deg,${rateColor},#21a67a)`;
 
+  // ===== MONATSÜBERSICHT IM DETAIL =====
   if(monthFilter !== undefined && monthFilter !== null){
-    const monthStr = `${year}-${String(monthFilter+1).padStart(2,'0')}`;
-    const monthDays = allDays.filter(d => d.training_date.startsWith(monthStr));
-    if(monthDays.length === 0){
+    // Einzelne Tage des Monats anzeigen
+    if(daysToAnalyze.length === 0){
       $('pd-monthly-grid').innerHTML =
-        '<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Monat</div>';
+        '<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;' +
+        'text-align:center;padding:20px">Keine Trainingstage in diesem Monat</div>';
     } else {
-      $('pd-monthly-grid').innerHTML = monthDays.map(d => {
+      $('pd-monthly-grid').innerHTML = daysToAnalyze.map(d => {
         const date = new Date(d.training_date+'T12:00:00');
-        const dayLabel = `${String(date.getDate()).padStart(2,'0')}.${String(monthFilter+1).padStart(2,'0')}`;
+        const dayLabel =
+          `${String(date.getDate()).padStart(2,'0')}.` +
+          `${String(date.getMonth()+1).padStart(2,'0')}`;
         const s = statuses[d.training_date];
         let badgeClass='none', badgeText='−';
         if(s==='T'){ badgeClass='t'; badgeText='T'; }
@@ -1117,17 +1193,20 @@ function openPlayerDetail(playerId, monthFilter){
         return `<div class="player-month-card has-data">
           <div class="month-name">${dayLabel} ${weekday[date.getDay()]}</div>
           <div class="month-stats">
-            <span class="legend-badge ${badgeClass}" style="display:inline-grid">${badgeText}</span>
+            <span class="legend-badge ${badgeClass}"
+              style="display:inline-grid">${badgeText}</span>
           </div>
           <div class="month-rate">${s||'Fehlt'}</div>
         </div>`;
       }).join('');
     }
   } else {
+    // ===== ✅ SAISON-MONATSÜBERSICHT (Jul → Jun) =====
     const monthlyData = [];
-    for(let m=0; m<12; m++){
-      const mStr = `${year}-${String(m+1).padStart(2,'0')}`;
-      const daysInMonth = allDays.filter(d => d.training_date.startsWith(mStr));
+    for(const m of seasonMonthOrder){
+      const y = yearForMonth(m);
+      const mStr = `${y}-${String(m+1).padStart(2,'0')}`;
+      const daysInMonth = allSeasonDays.filter(d => d.training_date.startsWith(mStr));
       if(daysInMonth.length === 0) continue;
       let mAttended=0, mEt=0;
       daysInMonth.forEach(d => {
@@ -1140,7 +1219,8 @@ function openPlayerDetail(playerId, monthFilter){
         days: daysInMonth.length,
         attended: mAttended,
         et: mEt,
-        rate: daysInMonth.length ? Math.round(((mAttended+mEt)/daysInMonth.length)*100) : 0
+        rate: daysInMonth.length
+          ? Math.round(((mAttended+mEt)/daysInMonth.length)*100) : 0
       });
     }
     $('pd-monthly-grid').innerHTML = monthlyData.map(m =>
@@ -1150,7 +1230,8 @@ function openPlayerDetail(playerId, monthFilter){
         <div class="month-rate" style="color:${getRateColor(m.rate)}">${m.rate}%</div>
       </div>`
     ).join('') ||
-    '<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;text-align:center;padding:20px">Keine Trainingstage in diesem Jahr</div>';
+    '<div style="color:rgba(255,255,255,0.4);grid-column:1/-1;' +
+    'text-align:center;padding:20px">Keine Trainingstage in dieser Saison</div>';
   }
 
   $('player-detail-backdrop').classList.add('open');
@@ -1166,16 +1247,26 @@ $('player-detail-backdrop').addEventListener('click', e => {
   if(e.target === $('player-detail-backdrop')) closePlayerDetail();
 });
 
-// ===== RENDER ÜBERSICHT =====
+// ===== ✅ RENDER ÜBERSICHT – SAISON (Jul → Jun) =====
 function renderOverview(ps){
   try {
-    let headHtml = '<tr><th class="name-cell" scope="col">Name</th><th class="first-cell" scope="col">Vorname</th>';
-    for(let m=0; m<12; m++) headHtml += `<th class="day-col" scope="col">${monthNamesShort[m]}</th>`;
-    headHtml += '<th class="rate-col" scope="col">Gesamtquote</th></tr>';
+    // Header: Saison-Monate in richtiger Reihenfolge
+    let headHtml = '<tr>' +
+      '<th class="name-cell" scope="col">Name</th>' +
+      '<th class="first-cell" scope="col">Vorname</th>';
+    for(const m of seasonMonthOrder){
+      headHtml += `<th class="day-col" scope="col">${monthNamesShort[m]}</th>`;
+    }
+    headHtml += '<th class="rate-col" scope="col">Saisonquote</th></tr>';
     $('overview-head').innerHTML = headHtml;
-    $('overview-sub').textContent = `Detaillierte Teilnahme aller Spieler im Jahr ${year}`;
+
+    // ✅ Saison-Label statt Jahreszahl
+    const seasonLabel = `${year}/${String(year+1).slice(-2)}`;
+    $('overview-sub').textContent =
+      `Saison ${seasonLabel} · Juli ${year} – Juni ${year+1}`;
 
     let globalAttended=0, globalDays=0;
+
     if(!ps.length){
       $('overview-body').innerHTML =
         `<tr><td colspan="15"><div class="empty">
@@ -1188,10 +1279,14 @@ function renderOverview(ps){
     const bodyHtml = ps.map(p => {
       const statuses = parseStatuses(p);
       let playerAttended=0, playerDays=0, monthCells='';
-      for(let m=0; m<12; m++){
-        const monthStr = `${year}-${String(m+1).padStart(2,'0')}`;
+
+      // ✅ Saison-Monate in richtiger Reihenfolge durchgehen
+      for(const m of seasonMonthOrder){
+        const y = yearForMonth(m);
+        const monthStr = `${y}-${String(m+1).padStart(2,'0')}`;
         const daysInMonth = records.filter(r =>
           r.record_type === 'day' && r.training_date?.startsWith(monthStr));
+
         if(daysInMonth.length > 0){
           const mAttended = daysInMonth.filter(d => {
             const s = statuses[d.training_date];
@@ -1199,23 +1294,32 @@ function renderOverview(ps){
           }).length;
           playerAttended += mAttended;
           playerDays += daysInMonth.length;
-          monthCells += `<td class="day-col"><span style="font-weight:700">${mAttended}/${daysInMonth.length}</span></td>`;
+          monthCells +=
+            `<td class="day-col">
+              <span style="font-weight:700">${mAttended}/${daysInMonth.length}</span>
+            </td>`;
         } else {
           monthCells += `<td class="day-col" style="color:#b4c0be">–</td>`;
         }
       }
+
       globalAttended += playerAttended;
       globalDays += playerDays;
-      const totalRate = playerDays > 0 ? Math.round((playerAttended/playerDays)*100) : 0;
+      const totalRate = playerDays > 0
+        ? Math.round((playerAttended/playerDays)*100) : 0;
       const rateColor = getRateColor(totalRate);
+
       return `<tr>
-        <td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td>
-        <td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>
+        <td class="name-cell"
+          data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td>
+        <td class="first-cell"
+          data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>
         ${monthCells}
         <td class="rate-col">
           <div class="rate-wrap">
             <div class="rate-track">
-              <div class="rate-fill" style="width:${totalRate}%;background:${rateColor}"></div>
+              <div class="rate-fill"
+                style="width:${totalRate}%;background:${rateColor}"></div>
             </div>
             <span class="rate-value" style="color:${rateColor}">${totalRate}%</span>
           </div>
@@ -1224,8 +1328,10 @@ function renderOverview(ps){
     }).join('');
 
     $('overview-body').innerHTML = bodyHtml;
-    const globalRate = globalDays > 0 ? Math.round((globalAttended/globalDays)*100) : 0;
+    const globalRate = globalDays > 0
+      ? Math.round((globalAttended/globalDays)*100) : 0;
     return { days: globalDays, rate: globalRate };
+
   } catch(e){
     console.error('renderOverview Fehler:', e);
     return { days:0, rate:0 };
@@ -1238,13 +1344,18 @@ function render(){
     const ps = players();
     const days = currentDays();
     const overall = renderOverview(ps);
+    const seasonLabel = `${year}/${String(year+1).slice(-2)}`;
 
     $('overview-panel').style.display = showAll ? '' : 'none';
     $('attendance-panel').style.display = showAll ? 'none' : '';
     $('training-actions').style.display = showAll ? 'none' : '';
 
+    // ✅ Saison-Label im Monats-Header
     $('period-label').textContent =
-      `${months[month]} ${year} · ${days.length} Trainingstag${days.length===1?'':'e'}`;
+      `${months[month]} ${yearForMonth(month)} · ` +
+      `Saison ${seasonLabel} · ` +
+      `${days.length} Trainingstag${days.length===1?'':'e'}`;
+
     $('stat-players').textContent = ps.length;
     $('stat-days').textContent = showAll ? overall.days : days.length;
 
@@ -1255,9 +1366,13 @@ function render(){
       days.map(d => {
         const date = new Date(d.training_date+'T12:00:00');
         return `<th class="day-col day-head" scope="col">
-          <span class="date-top">${String(date.getDate()).padStart(2,'0')}.${String(month+1).padStart(2,'0')}</span>
+          <span class="date-top">
+            ${String(date.getDate()).padStart(2,'0')}.` +
+            `${String(date.getMonth()+1).padStart(2,'0')}
+          </span>
           <span class="date-bottom">${weekday[date.getDay()]}</span>
-          <button class="remove-day" type="button" data-remove-day="${escapeHtml(d.__backendId)}" title="Entfernen">
+          <button class="remove-day" type="button"
+            data-remove-day="${escapeHtml(d.__backendId)}" title="Entfernen">
             <i data-lucide="x"></i>
           </button>
         </th>`;
@@ -1278,13 +1393,16 @@ function render(){
     } else {
       $('table-body').innerHTML = ps.map(p => {
         const statuses = parseStatuses(p);
-        const count = days.filter(d => ['T','ET'].includes(statuses[d.training_date])).length;
+        const count = days.filter(d =>
+          ['T','ET'].includes(statuses[d.training_date])).length;
         const rate = days.length ? Math.round(count/days.length*100) : 0;
         total += rate;
         const rateColor = getRateColor(rate);
         return `<tr>
-          <td class="name-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td>
-          <td class="first-cell" data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>
+          <td class="name-cell"
+            data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.name)}</td>
+          <td class="first-cell"
+            data-player-id="${escapeHtml(p.__backendId)}">${escapeHtml(p.vorname)}</td>
           ${days.map(d => {
             const st = statuses[d.training_date] || '';
             const displaySymbol = st || '−';
@@ -1303,13 +1421,15 @@ function render(){
           <td class="rate-col">
             <div class="rate-wrap">
               <div class="rate-track">
-                <div class="rate-fill" style="width:${rate}%;background:${rateColor}"></div>
+                <div class="rate-fill"
+                  style="width:${rate}%;background:${rateColor}"></div>
               </div>
               <span class="rate-value" style="color:${rateColor}">${rate}%</span>
             </div>
           </td>
           <td class="actions-col">
-            <button type="button" class="icon-btn" data-edit-player="${escapeHtml(p.__backendId)}">
+            <button type="button" class="icon-btn"
+              data-edit-player="${escapeHtml(p.__backendId)}">
               <i data-lucide="pencil"></i>
             </button>
           </td>
@@ -1318,7 +1438,9 @@ function render(){
     }
 
     $('stat-rate').textContent =
-      (showAll ? overall.rate : (ps.length ? Math.round(total/ps.length) : 0)) + ' %';
+      (showAll
+        ? overall.rate
+        : (ps.length ? Math.round(total/ps.length) : 0)) + ' %';
     iconize();
   } catch(e){
     console.error('render() Fehler:', e);
@@ -1327,18 +1449,26 @@ function render(){
 
 // ===== MATCHDAY RENDER =====
 function renderMatchdayOverview(){
-  const filled = matchdays.filter(m => m.nominations && m.nominations.length > 0).length;
+  const filled = matchdays.filter(
+    m => m.nominations && m.nominations.length > 0).length;
   $('md-filled-count').textContent = filled;
   $('md-total-players').textContent = players().length;
   $('matchday-grid').innerHTML = matchdays.map((md,i) => {
-    const hasData = (md.nominations && md.nominations.length > 0) || md.date || md.away;
-    const locationClass = md.isHome === true ? 'home' : md.isHome === false ? 'away' : 'none';
-    const locationLabel = md.isHome === true ? 'H' : md.isHome === false ? 'A' : '?';
+    const hasData =
+      (md.nominations && md.nominations.length > 0) || md.date || md.away;
+    const locationClass =
+      md.isHome === true ? 'home' : md.isHome === false ? 'away' : 'none';
+    const locationLabel =
+      md.isHome === true ? 'H' : md.isHome === false ? 'A' : '?';
     const opponentHtml = md.away
-      ? `<span class="vs-label">vs</span><span class="opp-name">${escapeHtml(md.away)}</span>`
+      ? `<span class="vs-label">vs</span>` +
+        `<span class="opp-name">${escapeHtml(md.away)}</span>`
       : '<span style="opacity:.4">Kein Gegner</span>';
-    const infoHtml = [md.date, md.time, md.venue].filter(Boolean).join(' · ') || 'Noch keine Infos';
-    return `<div class="matchday-card${hasData?' has-data':''}" data-md-index="${i}">
+    const infoHtml =
+      [md.date, md.time, md.venue].filter(Boolean).join(' · ') ||
+      'Noch keine Infos';
+    return `<div class="matchday-card${hasData?' has-data':''}"
+      data-md-index="${i}">
       <div class="md-top">
         <span class="md-number">MD ${md.matchday}</span>
         <span class="md-location ${locationClass}">${locationLabel}</span>
@@ -1346,7 +1476,9 @@ function renderMatchdayOverview(){
       <div class="md-title">${String(md.matchday).padStart(2,'0')}</div>
       <div class="md-opponent">${opponentHtml}</div>
       <div class="md-info">${escapeHtml(infoHtml)}</div>
-      <div class="md-players"><strong>${md.nominations?.length||0}</strong> Spieler nominiert</div>
+      <div class="md-players">
+        <strong>${md.nominations?.length||0}</strong> Spieler nominiert
+      </div>
     </div>`;
   }).join('');
   iconize();
@@ -1359,7 +1491,8 @@ function renderNominate(){
   const noms = md.nominations || [];
   $('nom-counter').textContent = `${noms.length} / ${MAX_NOM}`;
   $('nominate-list').innerHTML = ps.length === 0
-    ? '<div style="color:rgba(255,255,255,0.4);padding:20px;text-align:center">Keine Spieler vorhanden</div>'
+    ? '<div style="color:rgba(255,255,255,0.4);padding:20px;text-align:center">' +
+      'Keine Spieler vorhanden</div>'
     : ps.map(p => {
         const nom = noms.find(n => n.id === p.__backendId);
         const checked = !!nom;
@@ -1367,20 +1500,35 @@ function renderNominate(){
         return `<div class="nom-row">
           <input type="checkbox" class="nom-check"
             data-nom-id="${escapeHtml(p.__backendId)}" ${checked?'checked':''}>
-          <input type="number" class="num-input" min="1" max="99" placeholder="#"
-            data-num-id="${escapeHtml(p.__backendId)}" value="${escapeHtml(String(num))}">
-          <span class="nom-name">${escapeHtml(p.vorname)} ${escapeHtml(p.name)}</span>
+          <input type="number" class="num-input" min="1" max="99"
+            placeholder="#" data-num-id="${escapeHtml(p.__backendId)}"
+            value="${escapeHtml(String(num))}">
+          <span class="nom-name">
+            ${escapeHtml(p.vorname)} ${escapeHtml(p.name)}
+          </span>
         </div>`;
       }).join('');
 }
 // ===== INIT =====
 async function init(){
-  months.forEach((m,i) => $('month-select').add(new Option(m,i)));
-  $('month-select').add(new Option('Gesamtübersicht','all'));
-  for(let y=now.getFullYear()-5; y<=now.getFullYear()+10; y++)
-    $('year-select').add(new Option(y,y));
+
+  // ===== ✅ SAISON MONATE DROPDOWN (Jul → Jun) =====
+  for(const m of seasonMonthOrder){
+    $('month-select').add(new Option(months[m], m));
+  }
+  $('month-select').add(new Option('Gesamte Saison', 'all'));
+
+  // ===== ✅ SAISON DROPDOWN statt Jahreszahl =====
+  for(let y = now.getFullYear()-3; y <= now.getFullYear()+2; y++){
+    const label = `Saison ${y}/${String(y+1).slice(-2)}`;
+    $('year-select').add(new Option(label, y));
+  }
+
+  // Aktuelle Werte setzen
   $('month-select').value = month;
-  $('year-select').value = year;
+  $('year-select').value = seasonStartYear;
+  year = seasonStartYear;
+
   setDateBounds();
   updateLockUI();
 
@@ -1399,7 +1547,7 @@ async function init(){
 
   if(!ready) message('Firebase Verbindung fehlgeschlagen.');
 
-  // ===== MONAT / JAHR =====
+  // ===== ✅ MONAT WECHSEL – SAISONBEWUSST =====
   $('month-select').addEventListener('change', e => {
     if(e.target.value === 'all'){
       showAll = true;
@@ -1411,8 +1559,11 @@ async function init(){
     render();
   });
 
+  // ===== ✅ SAISON WECHSEL =====
   $('year-select').addEventListener('change', e => {
     year = +e.target.value;
+    seasonStartYear = year;
+    seasonEndYear = year + 1;
     setDateBounds();
     render();
   });
@@ -1423,11 +1574,16 @@ async function init(){
     if(!date) return message('Bitte ein Datum wählen.');
     if(records.find(r => r.record_type==='day' && r.training_date===date))
       return message('Dieser Tag ist bereits eingetragen.');
-    enqueue(() => window.dataSdk.create({record_type:'day', training_date:date}), $('add-day'));
+    enqueue(
+      () => window.dataSdk.create({record_type:'day', training_date:date}),
+      $('add-day')
+    );
   }));
 
   // ===== SPIELER HINZUFÜGEN =====
-  $('add-player').addEventListener('click', () => requireAuth(() => openModal('player')));
+  $('add-player').addEventListener('click', () =>
+    requireAuth(() => openModal('player'))
+  );
 
   // ===== MODAL CANCEL =====
   $('modal-cancel').addEventListener('click', closeModal);
@@ -1498,7 +1654,8 @@ async function init(){
     if(so && modalState?.type === 'status'){
       requireAuth(async () => {
         const choice = so.dataset.choice;
-        const player = records.find(r => r.__backendId === modalState.player.__backendId);
+        const player = records.find(
+          r => r.__backendId === modalState.player.__backendId);
         if(!player) return;
         const statuses = parseStatuses(player);
         if(choice === '') delete statuses[modalState.date];
@@ -1591,11 +1748,21 @@ async function init(){
     const homePrev = $('home-logo-prev');
     const awayPrev = $('away-logo-prev');
 
-    if(md.homeLogo){ homePrev.src = md.homeLogo; homePrev.style.display = 'block'; }
-    else { homePrev.src = ''; homePrev.style.display = 'none'; }
+    if(md.homeLogo){
+      homePrev.src = md.homeLogo;
+      homePrev.style.display = 'block';
+    } else {
+      homePrev.src = '';
+      homePrev.style.display = 'none';
+    }
 
-    if(md.awayLogo){ awayPrev.src = md.awayLogo; awayPrev.style.display = 'block'; }
-    else { awayPrev.src = ''; awayPrev.style.display = 'none'; }
+    if(md.awayLogo){
+      awayPrev.src = md.awayLogo;
+      awayPrev.style.display = 'block';
+    } else {
+      awayPrev.src = '';
+      awayPrev.style.display = 'none';
+    }
 
     $('matchday-overview').classList.add('hidden');
     $('matchday-detail').classList.add('active');
@@ -1649,13 +1816,13 @@ async function init(){
   $('save-match').addEventListener('click', () => requireAuth(() => {
     if(currentMatchdayIndex === null) return;
     const md = matchdays[currentMatchdayIndex];
-    md.isHome = $('m-location').value === 'home';
-    md.date   = $('m-date').value.trim();
-    md.time   = $('m-time').value.trim();
-    md.venue  = $('m-venue').value.trim();
-    md.home   = $('m-home').value.trim();
-    md.away   = $('m-away').value.trim();
-    md.league = $('m-league').value.trim();
+    md.isHome  = $('m-location').value === 'home';
+    md.date    = $('m-date').value.trim();
+    md.time    = $('m-time').value.trim();
+    md.venue   = $('m-venue').value.trim();
+    md.home    = $('m-home').value.trim();
+    md.away    = $('m-away').value.trim();
+    md.league  = $('m-league').value.trim();
     saveMatchdays();
     message('Spieltag gespeichert.', true);
     renderMatchdayOverview();
@@ -1744,16 +1911,22 @@ async function init(){
       if(!player) return '';
       return `<div class="p-row">
         <span class="p-num">${nom.number||'–'}</span>
-        <span class="p-name">${escapeHtml(player.vorname)} ${escapeHtml(player.name)}</span>
+        <span class="p-name">
+          ${escapeHtml(player.vorname)} ${escapeHtml(player.name)}
+        </span>
       </div>`;
     };
 
     const homeLogoHtml = md.homeLogo
       ? `<img src="${md.homeLogo}" alt="${escapeHtml(md.home)}">`
-      : `<span class="logo-fallback">${escapeHtml((md.home||'H').charAt(0).toUpperCase())}</span>`;
+      : `<span class="logo-fallback">
+          ${escapeHtml((md.home||'H').charAt(0).toUpperCase())}
+        </span>`;
     const awayLogoHtml = md.awayLogo
       ? `<img src="${md.awayLogo}" alt="${escapeHtml(md.away)}">`
-      : `<span class="logo-fallback">${escapeHtml((md.away||'A').charAt(0).toUpperCase())}</span>`;
+      : `<span class="logo-fallback">
+          ${escapeHtml((md.away||'A').charAt(0).toUpperCase())}
+        </span>`;
 
     content.innerHTML = `
       <div class="p-header">
